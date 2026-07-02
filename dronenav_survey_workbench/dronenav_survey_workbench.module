@@ -1,0 +1,538 @@
+<?php
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_form_alter().
+ */
+function dronenav_survey_workbench_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  $form_object = $form_state->getFormObject();
+
+  if (!is_object($form_object) || !method_exists($form_object, 'getEntity')) {
+    return;
+  }
+
+  $entity = $form_object->getEntity();
+
+  if (!$entity || $entity->getEntityTypeId() !== 'node') {
+    return;
+  }
+
+  if (!$entity->id()) {
+    return;
+  }
+
+  if (in_array($entity->bundle(), ['working_overlay_survey', 'working_site_survey_summary'], TRUE)) {
+    dronenav_survey_workbench_handle_reviewer_comments_field($form, $entity);
+  }
+
+  $bundle = $entity->bundle();
+
+  $referer = \Drupal::request()->headers->get('referer') ?: '';
+  $from_admin_content = str_contains($referer, '/admin/content');
+
+  $survey_service = \Drupal::service('dronenav_survey_workbench.survey');
+
+  if ($bundle === 'working_overlay_survey') {
+    if (!$from_admin_content && $survey_service->isSurveyPendingReview($entity)) {
+      \Drupal::messenger()->addError(t('This survey is pending governance review and cannot be edited.'));
+
+      $referer = \Drupal::request()->headers->get('referer') ?: '/survey-workbench/surveys';
+      $response = new \Symfony\Component\HttpFoundation\RedirectResponse($referer);
+      $response->send();
+      exit;
+    }
+
+    unset($form['actions']['delete']);
+    unset($form['meta']);
+    unset($form['author']);
+    unset($form['revision']);
+    unset($form['revision_log']);
+    unset($form['revision_information']);
+
+    $form['actions']['submit_survey'] = [
+      '#type' => 'submit',
+      '#value' => t('Submit Survey'),
+      '#button_type' => 'primary',
+      '#submit' => ['dronenav_survey_workbench_submit_survey_form_submit'],
+      '#weight' => 20,
+    ];
+
+    return;
+  }
+
+  if ($bundle === 'working_site_survey_summary') {
+    $summary_service = \Drupal::service('dronenav_survey_workbench.survey_summary');
+
+    if (!$from_admin_content && $summary_service->isSurveySummaryPendingReview($entity)) {
+      \Drupal::messenger()->addError(t('This site survey summary is pending governance review and cannot be edited.'));
+
+      $referer = \Drupal::request()->headers->get('referer') ?: '/survey-workbench/survey-summaries';
+      $response = new \Symfony\Component\HttpFoundation\RedirectResponse($referer);
+      $response->send();
+      exit;
+    }
+
+    if (isset($form['field_site'])) {
+      $form['field_site']['#disabled'] = TRUE;
+    }
+
+    if (isset($form['field_overlay_surveys'])) {
+      $form['field_overlay_surveys']['#disabled'] = TRUE;
+    }
+
+    unset($form['actions']['delete']);
+    unset($form['meta']);
+    unset($form['author']);
+    unset($form['revision']);
+    unset($form['revision_log']);
+    unset($form['revision_information']);
+
+    $form['actions']['submit_survey_summary'] = [
+      '#type' => 'submit',
+      '#value' => t('Submit Site Survey Summary'),
+      '#button_type' => 'primary',
+      '#submit' => ['dronenav_survey_workbench_submit_survey_summary_form_submit'],
+      '#weight' => 20,
+    ];
+
+    return;
+  }
+
+  if ($entity->bundle() === 'working_overlay_review') {
+
+    if (!$from_admin_content && $entity->isPublished()) {
+      \Drupal::messenger()->addWarning(t('This overlay review has been accepted and cannot be edited.'));
+
+      $response = new \Symfony\Component\HttpFoundation\RedirectResponse(
+        \Drupal\Core\Url::fromUserInput('/review-workbench/reviews')->toString()
+      );
+      $response->send();
+      exit;
+    }
+
+    unset($form['actions']['delete']);
+    unset($form['meta']);
+    unset($form['author']);
+    unset($form['revision']);
+    unset($form['revision_log']);
+    unset($form['revision_information']);
+
+    $form['actions']['accept_review'] = [
+      '#type' => 'submit',
+      '#value' => t('Approve'),
+      '#weight' => 90,
+      '#submit' => ['dronenav_survey_workbench_accept_review_submit'],
+    ];
+
+    $form['actions']['reject_review'] = [
+      '#type' => 'submit',
+      '#value' => t('Reject'),
+      '#weight' => 91,
+      '#submit' => ['dronenav_survey_workbench_reject_review_submit'],
+    ];
+
+    $form['actions']['request_changes_review'] = [
+      '#type' => 'submit',
+      '#value' => t('Request Changes'),
+      '#weight' => 92,
+      '#submit' => ['dronenav_survey_workbench_request_changes_review_submit'],
+    ];
+
+    return;
+  }
+
+  if ($entity->bundle() === 'working_site_operational_review') {
+
+    if (!$from_admin_content && $entity->isPublished()) {
+      \Drupal::messenger()->addWarning(t('This site operational review has already been approved and cannot be edited.'));
+
+      $response = new \Symfony\Component\HttpFoundation\RedirectResponse(
+        \Drupal\Core\Url::fromUserInput('/review-workbench/site-reviews')->toString()
+      );
+      $response->send();
+      exit;
+    }
+
+    unset($form['actions']['delete']);
+    unset($form['meta']);
+    unset($form['author']);
+    unset($form['revision']);
+    unset($form['revision_log']);
+    unset($form['revision_information']);
+
+    $form['actions']['approve_site_package'] = [
+      '#type' => 'submit',
+      '#value' => t('Approve Package'),
+      '#weight' => 90,
+      '#submit' => ['dronenav_survey_workbench_approve_site_package_submit'],
+    ];
+
+    $form['actions']['reject_site_package'] = [
+      '#type' => 'submit',
+      '#value' => t('Reject Package'),
+      '#weight' => 91,
+      '#submit' => ['dronenav_survey_workbench_reject_site_package_submit'],
+    ];
+  }
+
+}
+
+/**
+ * Custom submit handler for Working Overlay Survey.
+ */
+function dronenav_survey_workbench_submit_survey_form_submit(array &$form, FormStateInterface $form_state): void {
+  $form_object = $form_state->getFormObject();
+
+  // Apply submitted form values to the entity, but do not save yet.
+  $form_object->submitForm($form, $form_state);
+
+  $survey = $form_object->getEntity();
+
+  try {
+    \Drupal::service('dronenav_survey_workbench.survey')
+      ->submitSurvey($survey);
+
+    \Drupal::messenger()->addStatus(t('Survey submitted successfully.'));
+    $form_state->setRedirectUrl(Url::fromUserInput('/survey-workbench/surveys'));
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('dronenav_survey_workbench')->error($e->getMessage());
+
+    \Drupal::messenger()->addError(t('Survey was not submitted: @message', [
+      '@message' => $e->getMessage(),
+    ]));
+
+    $form_state->setRebuild(TRUE);
+  }
+}
+
+/**
+ * Custom submit handler for Working Site Survey Summary.
+ */
+function dronenav_survey_workbench_submit_survey_summary_form_submit(array &$form, FormStateInterface $form_state): void {
+  $form_object = $form_state->getFormObject();
+
+  // Apply submitted form values to the entity, but do not save yet.
+  $form_object->submitForm($form, $form_state);
+
+  $survey_summary = $form_object->getEntity();
+
+  try {
+    \Drupal::service('dronenav_survey_workbench.survey_summary')
+      ->submitSurveySummary($survey_summary);
+
+    \Drupal::messenger()->addStatus(t('Site survey summary submitted successfully.'));
+    $form_state->setRedirectUrl(Url::fromUserInput('/survey-workbench/survey-summaries'));
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('dronenav_survey_workbench')->error($e->getMessage());
+
+    \Drupal::messenger()->addError(t('Site survey summary was not submitted: @message', [
+      '@message' => $e->getMessage(),
+    ]));
+
+    $form_state->setRebuild(TRUE);
+  }
+}
+
+/**
+ * Implements hook_entity_operation().
+ */
+function dronenav_survey_workbench_entity_operation(EntityInterface $entity): array {
+  $operations = [];
+
+  if (!dronenav_survey_workbench_is_workbench_queue()) {
+    return $operations;
+  }
+
+  if ($entity->getEntityTypeId() !== 'node') {
+    return $operations;
+  }
+
+  if ($entity->bundle() === 'working_overlay_survey') {
+    $operations['reset_survey'] = [
+      'title' => t('Reset'),
+      'weight' => 20,
+      'url' => Url::fromRoute('dronenav_survey_workbench.reset_survey', [
+        'nid' => $entity->id(),
+      ]),
+    ];
+  }
+
+  if ($entity->bundle() === 'working_site_survey_summary') {
+    $operations['reset_survey_summary'] = [
+      'title' => t('Reset'),
+      'weight' => 20,
+      'url' => Url::fromRoute('dronenav_survey_workbench.reset_survey_summary', [
+        'nid' => $entity->id(),
+      ]),
+    ];
+  }
+
+  if ($entity->bundle() === 'working_overlay_review'
+      && dronenav_survey_workbench_is_review_approved($entity)) {
+
+    $is_operational = !$entity->get('field_operational_status')->isEmpty()
+      && (bool) $entity->get('field_operational_status')->value;
+
+    if ($is_operational) {
+      $operations['deactivate_overlay'] = [
+        'title' => t('Deactivate'),
+        'weight' => 30,
+        'url' => Url::fromRoute(
+          'dronenav_survey_workbench.deactivate_overlay_review',
+          ['nid' => $entity->id()]
+        ),
+      ];
+    }
+    else {
+      $operations['activate_overlay'] = [
+        'title' => t('Activate'),
+        'weight' => 30,
+        'url' => Url::fromRoute(
+          'dronenav_survey_workbench.activate_overlay_review',
+          ['nid' => $entity->id()]
+        ),
+      ];
+    }
+  }
+
+  if ($entity->bundle() === 'working_site_operational_review'
+      && dronenav_survey_workbench_is_review_approved($entity)) {
+
+    $is_operational = !$entity->get('field_operational_status')->isEmpty()
+      && (bool) $entity->get('field_operational_status')->value;
+
+    if ($is_operational) {
+      $operations['deactivate_site'] = [
+        'title' => t('Deactivate'),
+        'weight' => 30,
+        'url' => Url::fromRoute('dronenav_survey_workbench.deactivate_site_review', [
+          'nid' => $entity->id(),
+        ]),
+      ];
+    }
+    else {
+      $operations['activate_site'] = [
+        'title' => t('Activate'),
+        'weight' => 30,
+        'url' => Url::fromRoute('dronenav_survey_workbench.activate_site_review', [
+          'nid' => $entity->id(),
+        ]),
+      ];
+    }
+  }
+
+  return $operations;
+}
+
+/**
+ * Implements hook_entity_operation_alter().
+ */
+function dronenav_survey_workbench_entity_operation_alter(array &$operations, EntityInterface $entity): void {
+  if (!dronenav_survey_workbench_is_workbench_queue()) {
+    return;
+  }
+
+  if ($entity->getEntityTypeId() !== 'node') {
+    return;
+  }
+
+  if (in_array($entity->bundle(), ['working_overlay_survey',
+                                   'working_site_survey_summary',
+                                   'working_overlay_review',
+                                   'working_site_operational_review'], TRUE)) {
+    unset($operations['delete']);
+  }
+}
+
+function dronenav_survey_workbench_is_workbench_queue(): bool {
+  $path = \Drupal::service('path.current')->getPath();
+
+  return str_starts_with($path, '/survey-workbench/surveys')
+    || str_starts_with($path, '/survey-workbench/survey-summaries')
+    || str_starts_with($path, '/review-workbench/reviews')
+    || str_starts_with($path, '/review-workbench/site-reviews');
+}
+
+function dronenav_survey_workbench_handle_reviewer_comments_field(array &$form, EntityInterface $entity): void {
+  if (!$entity->hasField('field_reviewer_comments') || !isset($form['field_reviewer_comments'])) {
+    return;
+  }
+
+  $has_comments = !$entity->get('field_reviewer_comments')->isEmpty();
+
+  if (!$has_comments) {
+    unset($form['field_reviewer_comments']);
+    return;
+  }
+
+  $account = \Drupal::currentUser();
+  $can_edit_comments = in_array('administrator', $account->getRoles(), TRUE)
+    || in_array('governance', $account->getRoles(), TRUE);
+
+  if (!$can_edit_comments) {
+    $form['field_reviewer_comments']['#disabled'] = TRUE;
+  }
+}
+
+/**
+ * Submit handler for the Accept button on Working Overlay Reviews.
+ */
+function dronenav_survey_workbench_accept_review_submit(array &$form, FormStateInterface $form_state): void {
+
+  // Save any edits the reviewer made first.
+  $form_object = $form_state->getFormObject();
+  $form_object->submitForm($form, $form_state);
+
+  /** @var \Drupal\node\Entity\Node $review */
+  $review = $form_object->getEntity();
+
+  try {
+    /** @var \Drupal\dronenav_survey_workbench\Service\OverlayReviewService $service */
+    $service = \Drupal::service('dronenav_survey_workbench.overlay_review');
+
+    $service->acceptReview($review);
+
+    \Drupal::messenger()->addStatus(t('Overlay review accepted successfully.'));
+
+    $form_state->setRedirectUrl(
+      \Drupal\Core\Url::fromUserInput('/review-workbench/overlay-reviews')
+    );
+  }
+  catch (\Throwable $e) {
+    \Drupal::messenger()->addError($e->getMessage());
+    $form_state->setRebuild();
+  }
+}
+
+/**
+ * Submit handler for the Accept button on Working Overlay Reviews.
+ */
+function dronenav_survey_workbench_reject_review_submit(array &$form, FormStateInterface $form_state): void {
+
+  // Save any edits the reviewer made first.
+  $form_object = $form_state->getFormObject();
+  $form_object->submitForm($form, $form_state);
+
+  /** @var \Drupal\node\Entity\Node $review */
+  $review = $form_object->getEntity();
+
+  try {
+    /** @var \Drupal\dronenav_survey_workbench\Service\OverlayReviewService $service */
+    $service = \Drupal::service('dronenav_survey_workbench.overlay_review');
+
+    $service->rejectReview($review);
+
+    \Drupal::messenger()->addStatus(t('Overlay review rejected successfully.'));
+
+    $form_state->setRedirectUrl(
+      \Drupal\Core\Url::fromUserInput('/review-workbench/overlay-reviews')
+    );
+  }
+  catch (\Throwable $e) {
+    \Drupal::messenger()->addError($e->getMessage());
+    $form_state->setRebuild();
+  }
+}
+
+/**
+ * Submit handler for the Request Changes button.
+ */
+function dronenav_survey_workbench_request_changes_review_submit(array &$form, FormStateInterface $form_state): void {
+
+  $form_object = $form_state->getFormObject();
+
+  // Save reviewer comments entered on the form.
+  $form_object->submitForm($form, $form_state);
+
+  /** @var \Drupal\node\Entity\Node $review */
+  $review = $form_object->getEntity();
+
+  try {
+    \Drupal::service('dronenav_survey_workbench.overlay_review')
+      ->requestChangesReview($review);
+
+    \Drupal::messenger()->addStatus(
+      t('Request for changes has been sent to the survey team.')
+    );
+
+    $form_state->setRedirectUrl(
+      \Drupal\Core\Url::fromUserInput('/review-workbench/overlay-reviews')
+    );
+  }
+  catch (\Throwable $e) {
+    \Drupal::messenger()->addError($e->getMessage());
+    $form_state->setRebuild();
+  }
+}
+
+function dronenav_survey_workbench_approve_site_package_submit(array &$form, FormStateInterface $form_state): void {
+  $form_object = $form_state->getFormObject();
+
+  $form_object->submitForm($form, $form_state);
+
+  /** @var \Drupal\node\Entity\Node $review */
+  $review = $form_object->getEntity();
+
+  try {
+    \Drupal::service('dronenav_survey_workbench.site_operational_review')
+      ->approvePackage($review);
+
+    \Drupal::messenger()->addStatus(t('Site package approved successfully.'));
+
+    $form_state->setRedirectUrl(
+      \Drupal\Core\Url::fromUserInput('/review-workbench/site-reviews')
+    );
+  }
+  catch (\Throwable $e) {
+    \Drupal::messenger()->addError($e->getMessage());
+    $form_state->setRebuild();
+  }
+}
+
+function dronenav_survey_workbench_reject_site_package_submit(array &$form, FormStateInterface $form_state): void {
+  $form_object = $form_state->getFormObject();
+
+  $form_object->submitForm($form, $form_state);
+
+  /** @var \Drupal\node\Entity\Node $review */
+  $review = $form_object->getEntity();
+
+  try {
+    \Drupal::service('dronenav_survey_workbench.site_operational_review')
+      ->rejectPackage($review);
+
+    \Drupal::messenger()->addStatus(t('Site package rejected successfully.'));
+
+    $form_state->setRedirectUrl(
+      \Drupal\Core\Url::fromUserInput('/review-workbench/site-reviews')
+    );
+  }
+  catch (\Throwable $e) {
+    \Drupal::messenger()->addError($e->getMessage());
+    $form_state->setRebuild();
+  }
+}
+
+/**
+ * Returns TRUE if the review has an Approved review status.
+ */
+function dronenav_survey_workbench_is_review_approved(\Drupal\node\Entity\Node $review): bool {
+  if ($review->bundle() !== 'working_overlay_review'
+      && $review->bundle() !== 'working_site_operational_review') {
+    return FALSE;
+  }
+
+  if ($review->get('field_review_status')->isEmpty()) {
+    return FALSE;
+  }
+
+  $term = $review->get('field_review_status')->entity;
+
+  return $term && $term->label() === 'Approved';
+}
+

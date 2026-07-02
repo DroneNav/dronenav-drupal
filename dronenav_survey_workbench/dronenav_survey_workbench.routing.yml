@@ -1,0 +1,92 @@
+dronenav_survey_workbench.dashboard:
+  path: '/survey-workbench'
+  defaults:
+    _controller: '\Drupal\dronenav_survey_workbench\Controller\WorkbenchController::dashboard'
+    _title: 'Survey Workbench'
+
+dronenav_survey_workbench.sync_overlays:
+  path: '/admin/dronenav/sync-overlays'
+  defaults:
+    _controller: '\Drupal\dronenav_survey_workbench\Controller\OverlaySyncController::sync'
+    _title: 'Sync Overlay Records'
+  requirements:
+    _permission: 'sync dronenav survey overlays'
+
+dronenav_survey_workbench.react_map_test:
+  path: '/survey-workbench/react-map-test'
+  defaults:
+    _controller: '\Drupal\dronenav_survey_workbench\Controller\WorkbenchController::reactMapTest'
+    _title: 'React Map Test'
+
+dronenav_survey_workbench.survey_map:
+  path: '/survey-workbench/survey/{nid}/map'
+  defaults:
+    _controller: '\Drupal\dronenav_survey_workbench\Controller\WorkbenchController::surveyMap'
+    _title: 'Survey Map'
+  requirements:
+    _permission: 'perform dronenav overlay surveys'
+    nid: '\d+'
+
+dronenav_survey_workbench.reset_survey:
+  path: '/survey-workbench/survey/{nid}/reset'
+  defaults:
+    _controller: '\Drupal\dronenav_survey_workbench\Controller\SurveyController::resetSurvey'
+    _title: 'Reset Survey'
+  requirements:
+    _permission: 'perform dronenav overlay surveys'
+    nid: '\d+'
+
+dronenav_survey_workbench.survey_summary_map:
+  path: '/survey-workbench/survey-summary/{nid}/map'
+  defaults:
+    _controller: '\Drupal\dronenav_survey_workbench\Controller\WorkbenchController::surveySummaryMap'
+    _title: 'Survey Summary Map'
+  requirements:
+    _permission: 'perform dronenav overlay surveys'
+    nid: '\d+'
+
+dronenav_survey_workbench.reset_survey_summary:
+  path: '/survey-workbench/survey-summary/{nid}/reset'
+  defaults:
+    _controller: '\Drupal\dronenav_survey_workbench\Controller\SurveySummaryController::resetSurveySummary'
+    _title: 'Reset Survey Summary'
+  requirements:
+    _permission: 'perform dronenav overlay surveys'
+    nid: '\d+'
+
+dronenav_survey_workbench.activate_overlay_review:
+  path: '/review-workbench/overlay-review/{nid}/activate'
+  defaults:
+    _controller: '\Drupal\dronenav_survey_workbench\Controller\OverlayActivationController::activate'
+    _title: 'Activate Overlay'
+  requirements:
+    _permission: 'perform dronenav governance reviews'
+    nid: '\d+'
+
+dronenav_survey_workbench.deactivate_overlay_review:
+  path: '/review-workbench/overlay-review/{nid}/deactivate'
+  defaults:
+    _controller: '\Drupal\dronenav_survey_workbench\Controller\OverlayActivationController::deactivate'
+    _title: 'Deactivate Overlay'
+  requirements:
+    _permission: 'perform dronenav governance reviews'
+    nid: '\d+'
+
+dronenav_survey_workbench.deactivate_site_review:
+  path: '/review-workbench/site-review/{nid}/deactivate'
+  defaults:
+    _controller: '\Drupal\dronenav_survey_workbench\Controller\SiteActivationController::deactivate'
+    _title: 'Deactivate Site'
+  requirements:
+    _permission: 'perform dronenav governance reviews'
+    nid: '\d+'
+
+dronenav_survey_workbench.activate_site_review:
+  path: '/review-workbench/site-review/{nid}/activate'
+  defaults:
+    _controller: '\Drupal\dronenav_survey_workbench\Controller\SiteActivationController::activate'
+    _title: 'Activate Site'
+  requirements:
+    _permission: 'perform dronenav governance reviews'
+    nid: '\d+'
+

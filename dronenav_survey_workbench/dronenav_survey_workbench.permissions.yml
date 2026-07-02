@@ -1,0 +1,8 @@
+sync dronenav survey overlays:
+  title: 'Sync DroneNav Survey Overlays'
+
+perform dronenav overlay surveys:
+  title: 'Perform DroneNav Overlay Surveys'
+
+perform dronenav survey reviews:
+  title: 'Perform DroneNav Survey Reviews'

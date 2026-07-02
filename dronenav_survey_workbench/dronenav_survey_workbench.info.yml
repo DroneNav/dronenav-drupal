@@ -1,0 +1,9 @@
+name: 'DroneNav Survey Workbench'
+type: module
+description: 'Provides survey workbench tools for syncing overlay proxy records and managing survey workflows.'
+core_version_requirement: ^10 || ^11
+package: DroneNav
+dependencies:
+  - drupal:node
+  - drupal:user
+

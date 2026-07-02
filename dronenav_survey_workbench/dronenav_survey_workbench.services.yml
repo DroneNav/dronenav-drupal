@@ -1,0 +1,43 @@
+services:
+  dronenav_survey_workbench.overlay_sync:
+    class: Drupal\dronenav_survey_workbench\Service\OverlaySyncService
+    arguments:
+      - '@entity_type.manager'
+      - '@http_client'
+
+  dronenav_survey_workbench.survey:
+    class: Drupal\dronenav_survey_workbench\Service\SurveyService
+    arguments:
+      - '@entity_type.manager'
+      - '@current_user'
+      - '@http_client'
+
+  dronenav_survey_workbench.survey_summary:
+    class: Drupal\dronenav_survey_workbench\Service\SurveySummaryService
+    arguments:
+      - '@entity_type.manager'
+      - '@current_user'
+      - '@http_client'
+
+  dronenav_survey_workbench.overlay_review:
+    class: Drupal\dronenav_survey_workbench\Service\OverlayReviewService
+    arguments:
+      - '@entity_type.manager'
+      - '@current_user'
+      - '@http_client'
+
+  dronenav_survey_workbench.site_operational_review:
+    class: Drupal\dronenav_survey_workbench\Service\SiteOperationalReviewService
+    arguments:
+      - '@entity_type.manager'
+      - '@current_user'
+      - '@http_client'
+
+  dronenav_survey_workbench.overlay_activation:
+    class: Drupal\dronenav_survey_workbench\Service\OverlayActivationService
+    arguments:
+      - '@entity_type.manager'
+      - '@http_client'
+      - '@current_user'
+
+
