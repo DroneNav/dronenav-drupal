@@ -1,0 +1,11 @@
+services:
+  dronenav_flight_band.api:
+    class: Drupal\dronenav_flight_band\Service\FlightBandApi
+    arguments:
+      - '@http_client'
+      - '@logger.channel.dronenav_flight_band'
+
+  logger.channel.dronenav_flight_band:
+    parent: logger.channel_base
+    arguments: ['dronenav_flight_band']
+

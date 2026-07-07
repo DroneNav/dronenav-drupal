@@ -1,0 +1,6 @@
+# dronenav_flight_band.permissions.yml
+administer dronenav flight bands:
+  title: 'Administer DroneNav flight bands'
+  description: 'Access and manage DroneNav Flight Band configuration through the administrative UI.'
+  restrict access: true
+

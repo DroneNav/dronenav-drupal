@@ -1,0 +1,9 @@
+# dronenav_flight_band.info.yml
+name: DroneNav Flight Band
+type: module
+description: Provides Drupal admin screens for managing DroneNav Flight Band configuration through the DroneNav API.
+package: DroneNav
+core_version_requirement: ^10 || ^11
+dependencies:
+  - drupal:system
+

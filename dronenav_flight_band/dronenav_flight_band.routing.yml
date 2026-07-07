@@ -1,0 +1,33 @@
+# dronenav_flight_band.routing.yml
+dronenav_flight_band.list:
+  path: '/admin/flight-band'
+  defaults:
+    _controller: '\Drupal\dronenav_flight_band\Controller\FlightBandController::list'
+    _title: 'Flight Bands'
+  requirements:
+    _permission: 'administer dronenav flight bands'
+
+dronenav_flight_band.add:
+  path: '/admin/flight-band/add'
+  defaults:
+    _form: '\Drupal\dronenav_flight_band\Form\FlightBandForm'
+    _title: 'Add Flight Band'
+  requirements:
+    _permission: 'administer dronenav flight bands'
+
+dronenav_flight_band.edit:
+  path: '/admin/flight-band/{uuid}/edit'
+  defaults:
+    _form: '\Drupal\dronenav_flight_band\Form\FlightBandForm'
+    _title: 'Edit Flight Band'
+  requirements:
+    _permission: 'administer dronenav flight bands'
+
+dronenav_flight_band.delete:
+  path: '/admin/flight-band/{uuid}/delete'
+  defaults:
+    _form: '\Drupal\dronenav_flight_band\Form\FlightBandDeleteForm'
+    _title: 'Delete Flight Band'
+  requirements:
+    _permission: 'administer dronenav flight bands'
+

@@ -1,0 +1,5 @@
+name: DroneNav API
+type: module
+description: Provides reusable services for accessing the DroneNav Flask API.
+package: DroneNav
+core_version_requirement: ^11

@@ -1,0 +1,8 @@
+# dronenav_flight_band.links.menu.yml
+dronenav_flight_band.list:
+  title: 'Flight Bands'
+  description: 'Manage DroneNav Flight Band configuration.'
+  route_name: dronenav_flight_band.list
+  parent: system.admin
+  weight: 20
+

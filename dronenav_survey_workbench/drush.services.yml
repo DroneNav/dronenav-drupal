@@ -1,0 +1,5 @@
+services:
+  dronenav_survey_workbench.commands:
+    class: Drupal\dronenav_survey_workbench\Commands\DroneNavFieldCommands
+    tags:
+      - { name: drush.command }

@@ -45,7 +45,7 @@ class OverlaySyncService {
         'type' => 'site',
         'uuid' => $site['site_id'],
         'title' => $site['site_name'],
-        'parent_site_id' => $site['site_id'],
+        'authority_id' => $site['authority_id'] ?? NULL,
       ];
     }
 

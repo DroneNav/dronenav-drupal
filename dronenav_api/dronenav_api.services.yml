@@ -1,0 +1,10 @@
+services:
+  dronenav_api.reference_data:
+    class: Drupal\dronenav_api\Service\ReferenceDataService
+    arguments:
+      - '@http_client'
+      - '@logger.channel.dronenav_api'
+
+  logger.channel.dronenav_api:
+    parent: logger.channel_base
+    arguments: ['dronenav_api']
