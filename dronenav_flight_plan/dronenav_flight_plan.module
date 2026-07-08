@@ -1,0 +1,25 @@
+<?php
+
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\node\NodeInterface;
+use Drupal\Core\Form\FormStateInterface;
+
+
+/**
+ * Implements hook_node_access().
+ */
+function dronenav_flight_plan_node_access(NodeInterface $node, $op, AccountInterface $account): AccessResult {
+  if ($node->bundle() !== '_working_flight_plan') {
+    return AccessResult::neutral();
+  }
+
+  if (in_array($op, ['update', 'delete'], TRUE) && $node->isPublished()) {
+    return AccessResult::forbidden()
+      ->addCacheableDependency($node);
+  }
+
+  return AccessResult::neutral();
+}
+
+

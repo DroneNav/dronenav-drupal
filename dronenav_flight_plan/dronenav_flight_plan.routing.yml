@@ -1,0 +1,41 @@
+# dronenav_flight_plan.routing.yml
+dronenav_flight_plan.list:
+  path: '/flight-plans'
+  defaults:
+    _controller: '\Drupal\dronenav_flight_plan\Controller\FlightPlanController::list'
+    _title: 'My Flight Plans'
+  requirements:
+    _permission: 'manage own dronenav flight plans'
+
+dronenav_flight_plan.add:
+  path: '/flight-plan/add'
+  defaults:
+    _controller: '\Drupal\dronenav_flight_plan\Controller\FlightPlanController::add'
+    _title: 'File Flight Plan'
+  requirements:
+    _permission: 'file dronenav flight plans'
+
+dronenav_flight_plan.edit:
+  path: '/flight-plan/{node}/edit'
+  defaults:
+    _entity_form: 'node.edit'
+    _title: 'Edit Flight Plan'
+  requirements:
+    _permission: 'manage own dronenav flight plans'
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+dronenav_flight_plan.delete:
+  path: '/flight-plan/{node}/delete'
+  defaults:
+    _entity_form: 'node.delete'
+    _title: 'Delete Flight Plan'
+  requirements:
+    _permission: 'manage own dronenav flight plans'
+  options:
+    parameters:
+      node:
+        type: entity:node
+

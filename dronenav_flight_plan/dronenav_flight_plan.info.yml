@@ -1,0 +1,10 @@
+# dronenav_flight_plan.info.yml
+name: DroneNav Flight Plan
+type: module
+description: Provides user-facing Flight Plan filing and management screens for DroneNav Aviators.
+package: DroneNav
+core_version_requirement: ^10 || ^11
+dependencies:
+  - drupal:node
+  - drupal:user
+

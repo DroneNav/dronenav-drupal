@@ -1,0 +1,14 @@
+# dronenav_flight_plan.permissions.yml
+file dronenav flight plans:
+  title: 'File DroneNav flight plans'
+  description: 'Create new DroneNav Flight Plans.'
+
+manage own dronenav flight plans:
+  title: 'Manage own DroneNav flight plans'
+  description: 'View, edit, and delete own DroneNav Flight Plans.'
+
+administer dronenav flight plans:
+  title: 'Administer DroneNav flight plans'
+  description: 'Manage all DroneNav Flight Plans.'
+  restrict access: true
+

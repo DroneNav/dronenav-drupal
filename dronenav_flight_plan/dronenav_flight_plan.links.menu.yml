@@ -1,0 +1,8 @@
+# dronenav_flight_plan.links.menu.yml
+dronenav_flight_plan.list:
+  title: 'My Flight Plans'
+  description: 'View and manage your DroneNav Flight Plans.'
+  route_name: dronenav_flight_plan.list
+  menu_name: main
+  weight: 20
+
