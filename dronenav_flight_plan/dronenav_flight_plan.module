@@ -4,6 +4,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\node\NodeInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\node\Entity\Node;
 
 
 /**
@@ -23,3 +24,153 @@ function dronenav_flight_plan_node_access(NodeInterface $node, $op, AccountInter
 }
 
 
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function dronenav_flight_plan_form_node_working_flight_plan_form_alter(array &$form, FormStateInterface $form_state, $form_id) {
+
+  // We will add filtering logic here.
+  $authority_node = NULL;
+  $authority_id = NULL;
+
+  if (!empty($form['field_authority']['widget'][0]['target_id']['#default_value'])) {
+    $authority_node = $form['field_authority']['widget'][0]['target_id']['#default_value'];
+  }
+
+  if ($authority_node) {
+    $authority_id = $authority_node->get('field_authority_id')->value;
+  }
+
+  if ($authority_id) {
+    $site_nids = \Drupal::entityQuery('node')
+      ->accessCheck(TRUE)
+      ->condition('type', 'site')
+      ->condition('field_authority_id', $authority_id)
+      ->sort('title')
+      ->execute();
+
+    $site_options = [];
+
+    if (!empty($site_nids)) {
+      $sites = Node::loadMultiple($site_nids);
+
+      foreach ($sites as $site) {
+        $site_options[$site->id()] = $site->label();
+      }
+    }
+
+    if (isset($form['field_origin_site']['widget']['#options'])) {
+      $form['field_origin_site']['widget']['#options'] = $site_options;
+    }
+
+    if (isset($form['field_destination_site']['widget']['#options'])) {
+      $form['field_destination_site']['widget']['#options'] = $site_options;
+    }
+  }
+
+  // Filter Departure DronePorts by Origin Site.
+  if (!empty($form['field_origin_site']['widget'][0]['target_id']['#default_value'])) {
+    $origin_site = $form['field_origin_site']['widget'][0]['target_id']['#default_value'];
+    $origin_site_id = $origin_site->get('field_site_id')->value ?? NULL;
+
+    if ($origin_site_id) {
+      $departure_droneport_nids = \Drupal::entityQuery('node')
+        ->accessCheck(TRUE)
+        ->condition('type', 'droneport')
+        ->condition('field_parent_site_id', $origin_site_id)
+        ->sort('title')
+        ->execute();
+
+      $departure_droneport_options = ['_none' => t('- None -')];
+
+      if (!empty($departure_droneport_nids)) {
+        $departure_droneports = Node::loadMultiple($departure_droneport_nids);
+
+        foreach ($departure_droneports as $droneport) {
+          $departure_droneport_options[$droneport->id()] = $droneport->label();
+        }
+      }
+
+      if (isset($form['field_departure_droneport']['widget']['#options'])) {
+        $form['field_departure_droneport']['widget']['#options'] = $departure_droneport_options;
+      }
+    }
+  }
+
+  // Filter Arrival DronePorts by Destination Site.
+  if (!empty($form['field_destination_site']['widget'][0]['target_id']['#default_value'])) {
+    $destination_site = $form['field_destination_site']['widget'][0]['target_id']['#default_value'];
+    $destination_site_id = $destination_site->get('field_site_id')->value ?? NULL;
+
+    if ($destination_site_id) {
+      $arrival_droneport_nids = \Drupal::entityQuery('node')
+        ->accessCheck(TRUE)
+        ->condition('type', 'droneport')
+        ->condition('field_parent_site_id', $destination_site_id)
+        ->sort('title')
+        ->execute();
+
+      $arrival_droneport_options = ['_none' => t('- None -')];
+
+      if (!empty($arrival_droneport_nids)) {
+        $arrival_droneports = Node::loadMultiple($arrival_droneport_nids);
+
+        foreach ($arrival_droneports as $droneport) {
+          $arrival_droneport_options[$droneport->id()] = $droneport->label();
+        }
+      }
+
+      if (isset($form['field_arrival_droneport']['widget']['#options'])) {
+        $form['field_arrival_droneport']['widget']['#options'] = $arrival_droneport_options;
+      }
+    }
+  }
+
+  // Filter Flight Path by selected Origin and Destination Sites.
+  $origin_site_id = NULL;
+  $destination_site_id = NULL;
+
+  if (!empty($form['field_origin_site']['widget'][0]['target_id']['#default_value'])) {
+    $origin_site = $form['field_origin_site']['widget'][0]['target_id']['#default_value'];
+    $origin_site_id = $origin_site->id();
+  }
+
+  if (!empty($form['field_destination_site']['widget'][0]['target_id']['#default_value'])) {
+    $destination_site = $form['field_destination_site']['widget'][0]['target_id']['#default_value'];
+    $destination_site_id = $destination_site->id();
+  }
+
+  $route_options = ['_none' => t('- None -')];
+
+  if ($origin_site_id && $destination_site_id) {
+    $route_nids = \Drupal::entityQuery('node')
+      ->accessCheck(TRUE)
+      ->condition('type', 'route')
+      ->condition('field_site_a', [$origin_site_id, $destination_site_id], 'IN')
+      ->condition('field_site_b', [$origin_site_id, $destination_site_id], 'IN')
+      ->sort('title')
+      ->execute();
+
+    if (!empty($route_nids)) {
+      $routes = Node::loadMultiple($route_nids);
+
+      foreach ($routes as $route) {
+        $site_a = $route->get('field_site_a')->target_id;
+        $site_b = $route->get('field_site_b')->target_id;
+
+        if (
+          ((int) $site_a === (int) $origin_site_id && (int) $site_b === (int) $destination_site_id) ||
+          ((int) $site_a === (int) $destination_site_id && (int) $site_b === (int) $origin_site_id)
+        ) {
+          $route_options[$route->id()] = $route->label();
+        }
+      }
+    }
+  }
+
+  if (isset($form['field_flight_path']['widget']['#options'])) {
+    $form['field_flight_path']['widget']['#options'] = $route_options;
+  }
+
+
+}

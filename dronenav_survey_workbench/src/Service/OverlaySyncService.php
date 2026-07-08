@@ -96,6 +96,8 @@ class OverlaySyncService {
         'type' => 'route',
         'uuid' => $route['route_id'],
         'title' => $route['route_name'],
+        'origin_site_id' => $route['origin_site_id'] ?? NULL,
+        'destination_site_id' => $route['destination_site_id'] ?? NULL,
       ];
     }
 
@@ -128,6 +130,24 @@ class OverlaySyncService {
 
         if ($existing->hasField('field_parent_site_id')) {
           $existing->set('field_parent_site_id', $overlay['parent_site_id'] ?? NULL);
+        }
+
+        if ($bundle === 'route') {
+          $origin_site = !empty($overlay['origin_site_id'])
+            ? $this->findOverlayNode('site', $overlay['origin_site_id'])
+            : NULL;
+
+          $destination_site = !empty($overlay['destination_site_id'])
+            ? $this->findOverlayNode('site', $overlay['destination_site_id'])
+            : NULL;
+
+          if ($origin_site && $existing->hasField('field_site_a')) {
+            $existing->set('field_site_a', ['target_id' => $origin_site->id()]);
+          }
+
+          if ($destination_site && $existing->hasField('field_site_b')) {
+            $existing->set('field_site_b', ['target_id' => $destination_site->id()]);
+          }
         }
 
         $existing->save();
@@ -169,6 +189,24 @@ class OverlaySyncService {
 
         if ($node->hasField('field_parent_site_id')) {
           $node->set('field_parent_site_id', $overlay['parent_site_id'] ?? NULL);
+        }
+
+        if ($bundle === 'route') {
+          $origin_site = !empty($overlay['origin_site_id'])
+            ? $this->findOverlayNode('site', $overlay['origin_site_id'])
+            : NULL;
+
+          $destination_site = !empty($overlay['destination_site_id'])
+            ? $this->findOverlayNode('site', $overlay['destination_site_id'])
+            : NULL;
+
+          if ($origin_site && $node->hasField('field_site_a')) {
+            $node->set('field_site_a', ['target_id' => $origin_site->id()]);
+          }
+
+          if ($destination_site && $node->hasField('field_site_b')) {
+            $node->set('field_site_b', ['target_id' => $destination_site->id()]);
+          }
         }
 
         $node->save();
