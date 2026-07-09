@@ -11,11 +11,17 @@ use Drupal\node\Entity\Node;
  * Implements hook_node_access().
  */
 function dronenav_flight_plan_node_access(NodeInterface $node, $op, AccountInterface $account): AccessResult {
-  if ($node->bundle() !== '_working_flight_plan') {
+  if ($node->bundle() !== 'working_flight_plan') {
     return AccessResult::neutral();
   }
 
-  if (in_array($op, ['update', 'delete'], TRUE) && $node->isPublished()) {
+  // Admins retain normal Drupal access behavior.
+  if ($account->hasPermission('administer dronenav flight plans')) {
+    return AccessResult::neutral();
+  }
+
+  // Once accepted/published, Aviators may no longer edit or delete the plan.
+  if ($node->isPublished() && in_array($op, ['update', 'delete'], TRUE)) {
     return AccessResult::forbidden()
       ->addCacheableDependency($node);
   }

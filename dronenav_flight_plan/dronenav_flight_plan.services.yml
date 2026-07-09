@@ -1,0 +1,6 @@
+services:
+  dronenav_flight_plan.submission_service:
+    class: Drupal\dronenav_flight_plan\Service\FlightPlanSubmissionService
+    arguments:
+      - '@http_client'
+

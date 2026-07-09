@@ -39,3 +39,15 @@ dronenav_flight_plan.delete:
       node:
         type: entity:node
 
+dronenav_flight_plan.submit:
+  path: '/flight-plan/{node}/submit'
+  defaults:
+    _controller: '\Drupal\dronenav_flight_plan\Controller\FlightPlanController::submit'
+    _title: 'Submit Flight Plan'
+  requirements:
+    _permission: 'manage own dronenav flight plans'
+  options:
+    parameters:
+      node:
+        type: entity:node
+

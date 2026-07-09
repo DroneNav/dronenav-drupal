@@ -7,10 +7,27 @@ use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\node\Entity\Node;
 
+use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\dronenav_flight_plan\Service\FlightPlanSubmissionService;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+
+
 /**
  * Controller for DroneNav Flight Plans.
  */
-class FlightPlanController extends ControllerBase {
+class FlightPlanController extends ControllerBase implements ContainerInjectionInterface {
+
+  protected FlightPlanSubmissionService $submissionService;
+
+  public function __construct(FlightPlanSubmissionService $submission_service) {
+    $this->submissionService = $submission_service;
+  }
+
+  public static function create(ContainerInterface $container): self {
+    return new static(
+      $container->get('dronenav_flight_plan.submission_service')
+    );
+  }
 
   /**
    * Displays the current user's working Flight Plans.
@@ -42,31 +59,49 @@ class FlightPlanController extends ControllerBase {
       foreach ($nodes as $node) {
         $operations = [];
 
-        $operations[] = Link::fromTextAndUrl(
-          $this->t('Edit'),
-          Url::fromRoute(
-            'entity.node.edit_form',
-            ['node' => $node->id()],
-            [
-              'query' => [
-                'destination' => Url::fromRoute('dronenav_flight_plan.list')->toString(),
-              ],
-            ]
-          )
-        )->toString();
+        if ($node->isPublished()) {
+            // Submitted/accepted: View only.
+            $operations[] = Link::fromTextAndUrl(
+                $this->t('View'),
+                Url::fromRoute('entity.node.canonical', ['node' => $node->id()])
+              )->toString();
+        }
+        else {
+            // Draft/rejected/unpublished: Edit | Delete | Submit.
+            $operations[] = Link::fromTextAndUrl(
+              $this->t('Edit'),
+              Url::fromRoute(
+                'entity.node.edit_form',
+                ['node' => $node->id()],
+                [
+                  'query' => [
+                    'destination' => Url::fromRoute('dronenav_flight_plan.list')->toString(),
+                  ],
+                ]
+              )
+            )->toString();
 
-        $operations[] = Link::fromTextAndUrl(
-          $this->t('Delete'),
-          Url::fromRoute(
-            'entity.node.delete_form',
-            ['node' => $node->id()],
-            [
-              'query' => [
-                'destination' => Url::fromRoute('dronenav_flight_plan.list')->toString(),
-              ],
-            ]
-          )
-        )->toString();
+            $operations[] = Link::fromTextAndUrl(
+              $this->t('Delete'),
+              Url::fromRoute(
+                'entity.node.delete_form',
+                ['node' => $node->id()],
+                [
+                  'query' => [
+                    'destination' => Url::fromRoute('dronenav_flight_plan.list')->toString(),
+                  ],
+                ]
+              )
+            )->toString();
+
+            $operations[] = Link::fromTextAndUrl(
+              $this->t('Submit'),
+              Url::fromRoute(
+                'dronenav_flight_plan.submit',
+                ['node' => $node->id()]
+              )
+            )->toString();
+        }
 
         $rows[] = [
           $node->label(),
@@ -227,6 +262,50 @@ class FlightPlanController extends ControllerBase {
       ]
     );
 
+  }
+
+  public function submit(Node $node) {
+
+    if ($node->bundle() !== 'working_flight_plan') {
+      $this->messenger()->addError($this->t('Invalid Flight Plan.'));
+      return $this->redirect('dronenav_flight_plan.list');
+    }
+
+    if ((int) $node->getOwnerId() !== (int) $this->currentUser()->id()) {
+      $this->messenger()->addError($this->t('You may only submit your own Flight Plans.'));
+      return $this->redirect('dronenav_flight_plan.list');
+    }
+
+    $response = $this->submissionService->submit($node);
+
+    if (($response['status'] ?? '') === 'accepted') {
+      $node->set('field_flight_execution_id', $response['flight_execution_record_id'] ?? '');
+
+      $status_terms = \Drupal::entityTypeManager()
+        ->getStorage('taxonomy_term')
+        ->loadByProperties([
+          'vid' => 'flight_plan_status',
+          'name' => 'Submitted',
+        ]);
+
+      $submitted_status = reset($status_terms);
+
+      if ($submitted_status) {
+        $node->set('field_flight_plan_status', [
+          'target_id' => $submitted_status->id(),
+        ]);
+      }
+
+      $node->setPublished(TRUE);
+      $node->save();
+
+      $this->messenger()->addStatus($this->t('Flight Plan submitted successfully.'));
+    }
+    else {
+      $this->messenger()->addError($response['message'] ?? $this->t('Flight Plan submission failed.'));
+    }
+
+    return $this->redirect('dronenav_flight_plan.list');
   }
 
 
