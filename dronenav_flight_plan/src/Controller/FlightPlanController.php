@@ -7,6 +7,7 @@ use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\node\Entity\Node;
 
+use Drupal\dronenav_flight_plan\Service\FlightPlanValidator;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\dronenav_flight_plan\Service\FlightPlanSubmissionService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -18,14 +19,20 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class FlightPlanController extends ControllerBase implements ContainerInjectionInterface {
 
   protected FlightPlanSubmissionService $submissionService;
+  protected FlightPlanValidator $flightPlanValidator;
 
-  public function __construct(FlightPlanSubmissionService $submission_service) {
+  public function __construct(
+    FlightPlanSubmissionService $submission_service,
+    FlightPlanValidator $flight_plan_validator
+  ) {
     $this->submissionService = $submission_service;
+    $this->flightPlanValidator = $flight_plan_validator;
   }
 
   public static function create(ContainerInterface $container): self {
     return new static(
-      $container->get('dronenav_flight_plan.submission_service')
+      $container->get('dronenav_flight_plan.submission_service'),
+      $container->get('dronenav_flight_plan.validator')
     );
   }
 
@@ -273,6 +280,16 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
 
     if ((int) $node->getOwnerId() !== (int) $this->currentUser()->id()) {
       $this->messenger()->addError($this->t('You may only submit your own Flight Plans.'));
+      return $this->redirect('dronenav_flight_plan.list');
+    }
+
+    $validation = $this->flightPlanValidator->validateForSubmission($node);
+
+    if (!$validation['valid']) {
+      foreach ($validation['errors'] as $error) {
+        $this->messenger()->addError($this->t($error));
+      }
+
       return $this->redirect('dronenav_flight_plan.list');
     }
 

@@ -4,3 +4,5 @@ services:
     arguments:
       - '@http_client'
 
+  dronenav_flight_plan.validator:
+    class: Drupal\dronenav_flight_plan\Service\FlightPlanValidator
