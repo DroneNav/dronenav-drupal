@@ -6,3 +6,9 @@ services:
 
   dronenav_flight_plan.validator:
     class: Drupal\dronenav_flight_plan\Service\FlightPlanValidator
+
+  dronenav_flight_plan.flight_path_ordering:
+    class: Drupal\dronenav_flight_plan\Service\FlightPathOrderingService
+    arguments:
+      - '@http_client'
+
