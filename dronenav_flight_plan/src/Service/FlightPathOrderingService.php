@@ -197,8 +197,9 @@ class FlightPathOrderingService {
 
       if (empty($candidates)) {
         $errors[] = sprintf(
-          'The selected Routes do not provide a continuous path from DronePort %s.',
-          $current_droneport_id
+          'The selected Flight Path cannot be ordered from Departure DronePort "%s" to Arrival DronePort "%s".',
+          $departure_droneport->label(),
+          $arrival_droneport->label()
         );
 
         return $this->failure($errors);
@@ -246,8 +247,9 @@ class FlightPathOrderingService {
     }
 
     if ($current_droneport_id !== $arrival_droneport_id) {
-      $errors[] =
-        'The selected Routes do not terminate at the selected Arrival DronePort.';
+      $errors[] = sprintf(
+          'The selected Flight Path does not terminate at Arrival DronePort "%s".',
+          $arrival_droneport->label() );
 
       return $this->failure($errors);
     }

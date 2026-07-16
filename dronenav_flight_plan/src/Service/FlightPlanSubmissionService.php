@@ -79,7 +79,7 @@ class FlightPlanSubmissionService {
       );
 
       $payload = [
-        'flight_plan_id' => (int) $flight_plan->id(),
+        'flight_plan_id' => (string) $flight_plan->uuid(),
         'flight_plan_title' => $flight_plan->label(),
         'submitted_by' => \Drupal::currentUser()->getAccountName(),
 
@@ -277,19 +277,17 @@ class FlightPlanSubmissionService {
     }
 
     try {
-      $storage_timezone = new \DateTimeZone('UTC');
-      $display_timezone = new \DateTimeZone(date_default_timezone_get());
+      $utc_timezone = new \DateTimeZone('UTC');
       $origin_timezone = new \DateTimeZone($timezone_name);
 
       /*
-       * Drupal stores datetime fields in UTC. Convert the stored instant back
-       * into the timezone used by the Drupal form so we recover the wall-clock
-       * date and time entered by the Aviator.
+       * Drupal stores datetime fields in UTC. Parse the stored value as UTC,
+       * then convert that same instant into the origin operational timezone.
        */
       $stored_departure = \DateTimeImmutable::createFromFormat(
         '!Y-m-d\TH:i:s',
         $raw_value,
-        $storage_timezone
+        $utc_timezone
       );
 
       if (!$stored_departure) {
@@ -301,30 +299,13 @@ class FlightPlanSubmissionService {
         );
       }
 
-      $entered_wall_time = $stored_departure
-        ->setTimezone($display_timezone)
-        ->format('Y-m-d\TH:i:s');
-
-      /*
-       * Reinterpret that wall-clock date and time in the operational timezone
-       * of the Departure DronePort or Origin Site.
-       */
-      $operational_departure = \DateTimeImmutable::createFromFormat(
-        '!Y-m-d\TH:i:s',
-        $entered_wall_time,
+      $operational_departure = $stored_departure->setTimezone(
         $origin_timezone
       );
 
-      if (!$operational_departure) {
-        throw new \RuntimeException(
-          sprintf(
-            'Unable to interpret departure datetime in timezone %s.',
-            $timezone_name
-          )
-        );
-      }
-
-      return $operational_departure->format(\DateTimeInterface::ATOM);
+      return $operational_departure->format(
+        \DateTimeInterface::ATOM
+      );
     }
     catch (\Exception $e) {
       throw new \RuntimeException(
@@ -334,7 +315,9 @@ class FlightPlanSubmissionService {
         )
       );
     }
+
   }
+
 
   /**
    * Retrieves the operational timezone from a Site or DronePort detail endpoint.

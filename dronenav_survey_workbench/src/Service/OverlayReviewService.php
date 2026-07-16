@@ -30,7 +30,7 @@ class OverlayReviewService {
       throw new \InvalidArgumentException('Only working overlay reviews can be accepted.');
     }
 
-    if ($review->isPublished()) {
+    if ($this->isReviewApproved($review)) {
       throw new \RuntimeException('This review has already been accepted.');
     }
 
@@ -81,6 +81,23 @@ class OverlayReviewService {
 
     $review->setPublished(TRUE);
     $review->save();
+  }
+
+  /**
+   * Determines whether the review has already been approved.
+   */
+  protected function isReviewApproved(Node $review): bool {
+    if (
+      !$review->hasField('field_review_status') ||
+      $review->get('field_review_status')->isEmpty()
+    ) {
+      return FALSE;
+    }
+
+    $status_entity = $review->get('field_review_status')->entity;
+
+    return $status_entity
+      && strcasecmp($status_entity->label(), 'Approved') === 0;
   }
 
   public function rejectReview(Node $review): void {

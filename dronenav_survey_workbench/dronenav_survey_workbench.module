@@ -103,7 +103,12 @@ function dronenav_survey_workbench_form_alter(array &$form, FormStateInterface $
 
   if ($entity->bundle() === 'working_overlay_review') {
 
-    if (!$from_admin_content && $entity->isPublished()) {
+
+    if (
+      !$from_admin_content &&
+      $entity->isPublished() &&
+      dronenav_survey_workbench_is_review_approved($entity)
+    ) {
       \Drupal::messenger()->addWarning(t('This overlay review has been accepted and cannot be edited.'));
 
       $response = new \Symfony\Component\HttpFoundation\RedirectResponse(

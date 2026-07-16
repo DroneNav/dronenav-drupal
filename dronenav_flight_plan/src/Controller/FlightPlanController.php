@@ -11,6 +11,7 @@ use Drupal\dronenav_flight_plan\Service\FlightPlanValidator;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\dronenav_flight_plan\Service\FlightPlanSubmissionService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\dronenav_flight_plan\Service\FlightPathOrderingService;
 
 
 /**
@@ -20,19 +21,23 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
 
   protected FlightPlanSubmissionService $submissionService;
   protected FlightPlanValidator $flightPlanValidator;
+  protected FlightPathOrderingService $flightPathOrderingService;
 
   public function __construct(
     FlightPlanSubmissionService $submission_service,
-    FlightPlanValidator $flight_plan_validator
+    FlightPlanValidator $flight_plan_validator,
+    FlightPathOrderingService $flight_path_ordering_service
   ) {
     $this->submissionService = $submission_service;
     $this->flightPlanValidator = $flight_plan_validator;
+    $this->flightPathOrderingService = $flight_path_ordering_service;
   }
 
   public static function create(ContainerInterface $container): self {
     return new static(
       $container->get('dronenav_flight_plan.submission_service'),
-      $container->get('dronenav_flight_plan.validator')
+      $container->get('dronenav_flight_plan.validator'),
+      $container->get('dronenav_flight_plan.flight_path_ordering')
     );
   }
 
@@ -279,11 +284,18 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
     }
 
     if ((int) $node->getOwnerId() !== (int) $this->currentUser()->id()) {
-      $this->messenger()->addError($this->t('You may only submit your own Flight Plans.'));
+      $this->messenger()->addError(
+        $this->t('You may only submit your own Flight Plans.')
+      );
+
       return $this->redirect('dronenav_flight_plan.list');
     }
 
-    $validation = $this->flightPlanValidator->validateForSubmission($node);
+    /*
+     * Validate Drupal-governed Flight Plan requirements.
+     */
+    $validation = $this->flightPlanValidator
+      ->validateForSubmission($node);
 
     if (!$validation['valid']) {
       foreach ($validation['errors'] as $error) {
@@ -293,10 +305,56 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
       return $this->redirect('dronenav_flight_plan.list');
     }
 
+    /*
+     * Derive and validate the direction-aware Route order.
+     *
+     * A Flight Plan with no selected Routes returns a valid empty path.
+     */
+    $ordering = $this->flightPathOrderingService
+      ->orderFlightPath($node);
+
+    if (!$ordering['valid']) {
+      foreach ($ordering['errors'] as $error) {
+        $this->messenger()->addError($this->t($error));
+      }
+
+      return $this->redirect('dronenav_flight_plan.list');
+    }
+
+    /*
+     * Rewrite the entity-reference field using the derived traversal order.
+     * Drupal preserves this item order through field deltas.
+     */
+    if (!empty($ordering['ordered_routes'])) {
+      $ordered_route_references = [];
+
+      foreach ($ordering['ordered_routes'] as $route) {
+        $ordered_route_references[] = [
+          'target_id' => $route->id(),
+        ];
+      }
+
+      $node->set(
+        'field_flight_path',
+        $ordered_route_references
+      );
+
+      /*
+       * Save the ordered draft before sending it to the API.
+       */
+      $node->save();
+    }
+
+    /*
+     * Build and submit the Flight Execution payload from the ordered plan.
+     */
     $response = $this->submissionService->submit($node);
 
     if (($response['status'] ?? '') === 'accepted') {
-      $node->set('field_flight_execution_id', $response['flight_execution_record_id'] ?? '');
+      $node->set(
+        'field_flight_execution_id',
+        $response['flight_execution_record_id'] ?? ''
+      );
 
       $status_terms = \Drupal::entityTypeManager()
         ->getStorage('taxonomy_term')
@@ -316,14 +374,21 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
       $node->setPublished(TRUE);
       $node->save();
 
-      $this->messenger()->addStatus($this->t('Flight Plan submitted successfully.'));
+      $this->messenger()->addStatus(
+        $this->t('Flight Plan submitted successfully.')
+      );
     }
     else {
-      $this->messenger()->addError($response['message'] ?? $this->t('Flight Plan submission failed.'));
+      $this->messenger()->addError(
+        $response['message']
+          ?? $this->t('Flight Plan submission failed.')
+      );
     }
 
     return $this->redirect('dronenav_flight_plan.list');
   }
+
+
 
 
 }
