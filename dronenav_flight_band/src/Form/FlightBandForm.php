@@ -141,20 +141,6 @@ class FlightBandForm extends FormBase {
       ],
     ];
 
-    $form['timezone'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Timezone'),
-      '#required' => TRUE,
-      '#options' => [
-        'America/New_York' => 'America/New_York',
-        'America/Chicago' => 'America/Chicago',
-        'America/Denver' => 'America/Denver',
-        'America/Phoenix' => 'America/Phoenix',
-        'America/Los_Angeles' => 'America/Los_Angeles',
-      ],
-      '#default_value' => $band['timezone'] ?? 'America/New_York',
-    ];
-
     $form['operational_status'] = [
       '#type' => 'select',
       '#title' => $this->t('Operational Status'),
@@ -229,7 +215,6 @@ class FlightBandForm extends FormBase {
       'days' => $days,
       'start_time' => $form_state->getValue('start_time'),
       'end_time' => $form_state->getValue('end_time'),
-      'timezone' => $form_state->getValue('timezone'),
       'operational_status' => $form_state->getValue('operational_status'),
     ];
 
