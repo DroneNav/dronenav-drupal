@@ -1,11 +1,10 @@
 react_map:
-  version: 1.x
   css:
     theme:
-      react-map/assets/index-B3prvxip.css: {}
+      react-map/assets/index-BtPSqpVa.css: {}
+
   js:
-    react-map/assets/index-D40TRkYJ.js:
+    react-map/assets/index-C3dKdTRP.js:
       attributes:
         type: module
-
 

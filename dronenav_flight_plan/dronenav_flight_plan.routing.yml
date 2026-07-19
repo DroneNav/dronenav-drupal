@@ -51,3 +51,12 @@ dronenav_flight_plan.submit:
       node:
         type: entity:node
 
+dronenav_flight_plan.map:
+  path: '/flight-plan/{nid}/map'
+  defaults:
+    _controller: '\Drupal\dronenav_flight_plan\Controller\FlightPlanController::map'
+    _title: 'Flight Plan Map'
+  requirements:
+    _permission: 'access content'
+    node: '\d+'
+

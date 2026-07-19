@@ -113,7 +113,16 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
                 ['node' => $node->id()]
               )
             )->toString();
+
         }
+
+        $operations[] = Link::fromTextAndUrl(
+          $this->t('Map'),
+          Url::fromRoute(
+            'dronenav_flight_plan.map',
+            ['nid' => $node->id()]
+          )
+        )->toString();
 
         $rows[] = [
           $node->label(),
@@ -388,7 +397,128 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
     return $this->redirect('dronenav_flight_plan.list');
   }
 
+  /**
+   * Displays the overlays referenced by a Flight Plan.
+   */
+  public function map(int $nid): array {
 
+    $flight_plan = $this->entityTypeManager()
+      ->getStorage('node')
+      ->load($nid);
+
+    if (
+      !$flight_plan ||
+      $flight_plan->bundle() !== 'working_flight_plan'
+    ) {
+      throw $this->createNotFoundException();
+    }
+
+    $site_uuids = [];
+    $droneport_uuids = [];
+    $route_uuids = [];
+
+    /*
+     * Origin and destination Sites.
+     */
+    foreach ([
+      'field_origin_site',
+      'field_destination_site',
+    ] as $field_name) {
+
+      if (
+        !$flight_plan->hasField($field_name) ||
+        $flight_plan->get($field_name)->isEmpty()
+      ) {
+        continue;
+      }
+
+      $site = $flight_plan->get($field_name)->entity;
+
+      if (
+        !$site ||
+        !$site->hasField('field_overlay_uuid') ||
+        $site->get('field_overlay_uuid')->isEmpty()
+      ) {
+        continue;
+      }
+
+      $site_uuids[] =
+        $site->get('field_overlay_uuid')->value;
+    }
+
+    /*
+     * Departure and arrival DronePorts.
+     */
+    foreach ([
+      'field_departure_droneport',
+      'field_arrival_droneport',
+    ] as $field_name) {
+
+      if (
+        !$flight_plan->hasField($field_name) ||
+        $flight_plan->get($field_name)->isEmpty()
+      ) {
+        continue;
+      }
+
+      $droneport = $flight_plan->get($field_name)->entity;
+
+      if (
+        !$droneport ||
+        !$droneport->hasField('field_overlay_uuid') ||
+        $droneport->get('field_overlay_uuid')->isEmpty()
+      ) {
+        continue;
+      }
+
+      $droneport_uuids[] =
+        $droneport->get('field_overlay_uuid')->value;
+    }
+
+    /*
+     * Flight Path Routes.
+     */
+    if (
+      $flight_plan->hasField('field_flight_path') &&
+      !$flight_plan->get('field_flight_path')->isEmpty()
+    ) {
+
+      foreach (
+        $flight_plan->get('field_flight_path')->referencedEntities()
+        as $route
+      ) {
+
+        if (
+          !$route->hasField('field_overlay_uuid') ||
+          $route->get('field_overlay_uuid')->isEmpty()
+        ) {
+          continue;
+        }
+
+        $route_uuids[] =
+          $route->get('field_overlay_uuid')->value;
+      }
+    }
+
+    return [
+      '#type' => 'container',
+      '#attributes' => [
+        'id' => 'root',
+        'data-mode' => 'map-context',
+        'data-context-sites' => implode(',', $site_uuids),
+        'data-context-zones' => '',
+        'data-context-droneports' => implode(',', $droneport_uuids),
+        'data-context-routes' => implode(',', $route_uuids),
+        'style' => 'height: 700px; width: 100%;',
+      ],
+      '#attached' => [
+        'library' => [
+          'dronenav_survey_workbench/react_map',
+        ],
+      ],
+    ];
+
+  }
 
 
 }
