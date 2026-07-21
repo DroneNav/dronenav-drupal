@@ -132,6 +132,16 @@ class OverlaySyncService {
           $existing->set('field_parent_site_id', $overlay['parent_site_id'] ?? NULL);
         }
 
+        if (
+          $bundle === 'site' &&
+          $existing->hasField('field_authority_id')
+        ) {
+          $existing->set(
+            'field_authority_id',
+            $overlay['authority_id'] ?? NULL
+          );
+        }
+
         if ($bundle === 'route') {
           $origin_site = !empty($overlay['origin_site_id'])
             ? $this->findOverlayNode('site', $overlay['origin_site_id'])
@@ -180,7 +190,7 @@ class OverlaySyncService {
           'type' => $bundle,
           'title' => $overlay['title'],
           'field_overlay_uuid' => $overlay['uuid'],
-          'status' => 0,
+          'status' => 1,
         ]);
 
         if ($node->hasField('field_overlay_last_synced')) {
@@ -189,6 +199,16 @@ class OverlaySyncService {
 
         if ($node->hasField('field_parent_site_id')) {
           $node->set('field_parent_site_id', $overlay['parent_site_id'] ?? NULL);
+        }
+
+        if (
+          $bundle === 'site' &&
+          $node->hasField('field_authority_id')
+        ) {
+          $node->set(
+            'field_authority_id',
+            $overlay['authority_id'] ?? NULL
+          );
         }
 
         if ($bundle === 'route') {
