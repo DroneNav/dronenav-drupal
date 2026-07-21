@@ -5,7 +5,7 @@ dronenav_survey_workbench.dashboard:
     _title: 'Survey Workbench'
 
 dronenav_survey_workbench.sync_overlays:
-  path: '/admin/dronenav/sync-overlays'
+  path: '/admin/sync-overlays'
   defaults:
     _controller: '\Drupal\dronenav_survey_workbench\Controller\OverlaySyncController::sync'
     _title: 'Sync Overlay Records'
