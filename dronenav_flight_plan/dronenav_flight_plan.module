@@ -466,3 +466,20 @@ function dronenav_flight_plan_destination_site_ajax(
   return $response;
 }
 
+/**
+ * Implements hook_mail().
+ */
+function dronenav_flight_plan_mail(
+  string $key,
+  array &$message,
+  array $params
+): void {
+
+  if ($key !== 'flight_plan_accepted') {
+    return;
+  }
+
+  $message['subject'] = t('DroneNav Flight Plan Accepted');
+  $message['body'][] = $params['body'];
+}
+

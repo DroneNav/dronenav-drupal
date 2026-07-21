@@ -383,6 +383,13 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
       $node->setPublished(TRUE);
       $node->save();
 
+      /*
+       * Notification failure must not undo a successful submission.
+       */
+       \Drupal::logger('dronenav_flight_plan')->notice('Before mail()');
+      $this->sendFlightPlanAcceptedEmail($node);
+       \Drupal::logger('dronenav_flight_plan')->notice('After mail()');
+
       $this->messenger()->addStatus(
         $this->t('Flight Plan submitted successfully.')
       );
@@ -518,6 +525,167 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
       ],
     ];
 
+  }
+
+  /**
+   * Sends a plain-text Flight Plan acceptance notification.
+   */
+  protected function sendFlightPlanAcceptedEmail(Node $flight_plan): void {
+    try {
+      $aviator = $flight_plan->get('field_aviator')->entity;
+
+      if (
+        !$aviator instanceof Node ||
+        !$aviator->hasField('field_aviator_account') ||
+        $aviator->get('field_aviator_account')->isEmpty()
+      ) {
+        \Drupal::logger('dronenav_flight_plan')->warning(
+          'Acceptance email was not sent for Flight Plan @id because no Aviator account was found.',
+          ['@id' => $flight_plan->id()]
+        );
+        return;
+      }
+
+      $account = $aviator->get('field_aviator_account')->entity;
+
+      if (!$account || !$account->getEmail()) {
+        \Drupal::logger('dronenav_flight_plan')->warning(
+          'Acceptance email was not sent for Flight Plan @id because the Aviator account has no email address.',
+          ['@id' => $flight_plan->id()]
+        );
+        return;
+      }
+
+      $reference_label = static function (
+        Node $node,
+        string $field_name,
+        string $empty_value = 'None'
+      ): string {
+        if (
+          !$node->hasField($field_name) ||
+          $node->get($field_name)->isEmpty()
+        ) {
+          return $empty_value;
+        }
+
+        $entity = $node->get($field_name)->entity;
+
+        return $entity ? $entity->label() : $empty_value;
+      };
+
+      $route_labels = [];
+
+      if (
+        $flight_plan->hasField('field_flight_path') &&
+        !$flight_plan->get('field_flight_path')->isEmpty()
+      ) {
+        foreach ($flight_plan->get('field_flight_path')->referencedEntities() as $route) {
+          $route_labels[] = $route->label();
+        }
+      }
+
+      $requested_departure = 'Any Time';
+
+      if (
+        $flight_plan->hasField('field_departure_datetime') &&
+        !$flight_plan->get('field_departure_datetime')->isEmpty()
+      ) {
+        $requested_departure =
+          $flight_plan->get('field_departure_datetime')->value;
+      }
+
+      $submitted = \Drupal::service('date.formatter')->format(
+        $flight_plan->getChangedTime(),
+        'custom',
+        'Y-m-d H:i T',
+        'UTC'
+      );
+
+      $body = implode("\n", [
+        'Dear ' . $aviator->label() . ',',
+        '',
+        'Your Flight Plan has been successfully accepted by DroneNav.',
+        '',
+        'The information below summarizes the accepted Flight Plan.',
+        '',
+        'FLIGHT PLAN SUMMARY',
+        '-------------------',
+        '',
+        'Flight Plan: ' . $flight_plan->label(),
+        'Submitted: ' . $submitted,
+        'Requested Departure: ' . $requested_departure,
+        'Flight Class: ' . $reference_label(
+          $flight_plan,
+          'field_flight_class'
+        ),
+        'Authority: ' . $reference_label(
+          $flight_plan,
+          'field_authority'
+        ),
+        'Aircraft: ' . $reference_label(
+          $flight_plan,
+          'field_aircraft'
+        ),
+        'Origin Site: ' . $reference_label(
+          $flight_plan,
+          'field_origin_site'
+        ),
+        'Departure DronePort: ' . $reference_label(
+          $flight_plan,
+          'field_departure_droneport'
+        ),
+        'Destination Site: ' . $reference_label(
+          $flight_plan,
+          'field_destination_site'
+        ),
+        'Arrival DronePort: ' . $reference_label(
+          $flight_plan,
+          'field_arrival_droneport'
+        ),
+        'Flight Path: ' . (
+          $route_labels
+            ? implode(' -> ', $route_labels)
+            : 'None'
+        ),
+        '',
+        'This Flight Plan is now immutable. If your operational requirements change, create and submit a new Flight Plan.',
+        '',
+        'Actual flight operations remain subject to applicable operational policies and conditions at the time of launch.',
+        '',
+        'Thank you for using DroneNav.',
+        '',
+        'DroneNav',
+        'Safe Autonomous Airspace',
+      ]);
+
+      $params = [
+        'body' => $body,
+      ];
+
+      $result = \Drupal::service('plugin.manager.mail')->mail(
+        'dronenav_flight_plan',
+        'flight_plan_accepted',
+        $account->getEmail(),
+        $account->getPreferredLangcode(),
+        $params
+      );
+
+      if (empty($result['result'])) {
+        \Drupal::logger('dronenav_flight_plan')->error(
+          'Acceptance email failed for Flight Plan @id.',
+          ['@id' => $flight_plan->id()]
+        );
+      }
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('dronenav_flight_plan')->error(
+        'Acceptance email failed for Flight Plan @id: @message',
+        [
+          '@id' => $flight_plan->id(),
+          '@message' => $e->getMessage(),
+        ]
+      );
+    }
   }
 
 
