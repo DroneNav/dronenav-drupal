@@ -60,3 +60,20 @@ dronenav_flight_plan.map:
     _permission: 'access content'
     node: '\d+'
 
+dronenav_flight_plan.launch:
+  path: '/flight-plan/{node}/launch'
+  defaults:
+    _controller: '\Drupal\dronenav_flight_plan\Controller\FlightPlanController::launch'
+    _title: 'Launch Flight'
+  requirements:
+    _permission: 'access content'
+    node: '\d+'
+
+dronenav_flight_plan.status_callback:
+  path: '/api/flight-plans/status-callback'
+  defaults:
+    _controller: '\Drupal\dronenav_flight_plan\Controller\FlightStatusCallbackController::receive'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+

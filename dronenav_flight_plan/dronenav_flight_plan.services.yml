@@ -12,3 +12,22 @@ services:
     arguments:
       - '@http_client'
 
+  logger.channel.dronenav_flight_plan:
+    parent: logger.channel_base
+    arguments:
+      - 'dronenav_flight_plan'
+
+  dronenav_flight_plan.flight_execution:
+    class: Drupal\dronenav_flight_plan\Service\FlightExecutionService
+    arguments:
+      - '@http_client'
+      - '@logger.channel.dronenav_flight_plan'
+      - 'https://api.dronenav.org'
+
+  dronenav_flight_plan.flight_status_update:
+    class: Drupal\dronenav_flight_plan\Service\FlightStatusUpdateService
+    arguments:
+      - '@entity_type.manager'
+      - '@entity_field.manager'
+      - '@logger.channel.dronenav_flight_plan'
+

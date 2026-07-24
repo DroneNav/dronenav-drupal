@@ -12,6 +12,7 @@ use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\dronenav_flight_plan\Service\FlightPlanSubmissionService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\dronenav_flight_plan\Service\FlightPathOrderingService;
+use Drupal\dronenav_flight_plan\Service\FlightExecutionService;
 
 
 /**
@@ -22,22 +23,26 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
   protected FlightPlanSubmissionService $submissionService;
   protected FlightPlanValidator $flightPlanValidator;
   protected FlightPathOrderingService $flightPathOrderingService;
+  protected FlightExecutionService $flightExecutionService;
 
   public function __construct(
     FlightPlanSubmissionService $submission_service,
     FlightPlanValidator $flight_plan_validator,
-    FlightPathOrderingService $flight_path_ordering_service
+    FlightPathOrderingService $flight_path_ordering_service,
+    FlightExecutionService $flight_execution_service
   ) {
     $this->submissionService = $submission_service;
     $this->flightPlanValidator = $flight_plan_validator;
     $this->flightPathOrderingService = $flight_path_ordering_service;
+    $this->flightExecutionService = $flight_execution_service;
   }
 
   public static function create(ContainerInterface $container): self {
     return new static(
       $container->get('dronenav_flight_plan.submission_service'),
       $container->get('dronenav_flight_plan.validator'),
-      $container->get('dronenav_flight_plan.flight_path_ordering')
+      $container->get('dronenav_flight_plan.flight_path_ordering'),
+      $container->get('dronenav_flight_plan.flight_execution')
     );
   }
 
@@ -72,11 +77,28 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
         $operations = [];
 
         if ($node->isPublished()) {
-            // Submitted/accepted: View only.
+          // Submitted/accepted: View.
+          $operations[] = Link::fromTextAndUrl(
+            $this->t('View'),
+            Url::fromRoute(
+              'entity.node.canonical',
+              ['node' => $node->id()]
+            )
+          )->toString();
+
+          /*
+           * Flight Plans with no requested departure datetime
+           * may be launched manually.
+           */
+          if ($node->get('field_departure_datetime')->isEmpty()) {
             $operations[] = Link::fromTextAndUrl(
-                $this->t('View'),
-                Url::fromRoute('entity.node.canonical', ['node' => $node->id()])
-              )->toString();
+              $this->t('Launch'),
+              Url::fromRoute(
+                'dronenav_flight_plan.launch',
+                ['node' => $node->id()]
+              )
+            )->toString();
+          }
         }
         else {
             // Draft/rejected/unpublished: Edit | Delete | Submit.
@@ -688,6 +710,49 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
     }
   }
 
+  /**
+   * Launches the Flight Execution Record for a Flight Plan.
+   */
+  public function launch(Node $node) {
+
+    $flight_execution_uuid = (string) (
+      $node->get('field_flight_execution_id')->value ?? ''
+    );
+
+    $aviator = $node->get('field_aviator')->entity;
+    $aircraft = $node->get('field_aircraft')->entity;
+
+    $aviator_id = $aviator
+      ? (string) $aviator->uuid()
+      : '';
+
+    $aircraft_id = $aircraft
+      ? (string) $aircraft->uuid()
+      : '';
+
+    $result = $this->flightExecutionService->launch(
+      $flight_execution_uuid,
+      $aviator_id,
+      $aircraft_id
+    );
+
+    if ($result['success']) {
+      $this->messenger()->addStatus(
+        $this->t('@message', [
+          '@message' => $result['message'],
+        ])
+      );
+    }
+    else {
+      $this->messenger()->addError(
+        $this->t('@message', [
+          '@message' => $result['message'],
+        ])
+      );
+    }
+
+    return $this->redirect('dronenav_flight_plan.list');
+  }
 
 }
 
