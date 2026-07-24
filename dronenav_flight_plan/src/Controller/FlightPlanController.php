@@ -147,25 +147,68 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
         )->toString();
 
         $rows[] = [
-          $node->label(),
-          $this->getEntityReferenceLabel($node, 'field_flight_plan_status'),
-          $this->getEntityReferenceLabel($node, 'field_flight_class'),
-          $node->get('field_departure_datetime')->value ?? '',
-          $this->getEntityReferenceLabel($node, 'field_origin_site'),
-          $this->getEntityReferenceLabel($node, 'field_destination_site'),
-          [ 
-            'data' => [
-              '#markup' => implode(' | ', $operations),
+          'data' => [
+            [
+              'data' => $node->label(),
             ],
-            'style' => 'white-space: nowrap;',
+            [
+              'data' => $this->getEntityReferenceLabel(
+                $node,
+                'field_flight_plan_status'
+              ),
+              'class' => ['flight-plan-status'],
+            ],
+            [
+              'data' => $this->getEntityReferenceLabel(
+                $node,
+                'field_flight_class'
+              ),
+            ],
+            [
+              'data' => $node->get('field_departure_datetime')->value ?? '',
+            ],
+            [
+              'data' => $this->getEntityReferenceLabel(
+                $node,
+                'field_origin_site'
+              ),
+            ],
+            [
+              'data' => $this->getEntityReferenceLabel(
+                $node,
+                'field_destination_site'
+              ),
+            ],
+            [
+              'data' => [
+                '#markup' => implode(' | ', $operations),
+              ],
+              'style' => 'white-space: nowrap;',
+            ],
           ],
+          'class' => ['flight-plan-row'],
+          'data-node-id' => $node->id(),
         ];
+
+
       }
     }
 
     return [
       '#cache' => [
         'max-age' => 0,
+      ],
+      '#attached' => [
+        'library' => [
+          'dronenav_flight_plan/status_polling',
+        ],
+        'drupalSettings' => [
+          'dronenavFlightPlan' => [
+            'statusUrl' => Url::fromRoute(
+              'dronenav_flight_plan.statuses'
+            )->toString(),
+          ],
+        ],
       ],
       'add_button' => [
         '#type' => 'link',

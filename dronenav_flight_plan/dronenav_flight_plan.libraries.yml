@@ -1,0 +1,8 @@
+status_polling:
+  js:
+    js/flight-plan-status-polling.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once
+

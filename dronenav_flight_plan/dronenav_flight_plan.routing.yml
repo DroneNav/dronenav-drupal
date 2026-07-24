@@ -77,3 +77,11 @@ dronenav_flight_plan.status_callback:
   requirements:
     _access: 'TRUE'
 
+dronenav_flight_plan.statuses:
+  path: '/flight-plans/statuses'
+  defaults:
+    _controller: '\Drupal\dronenav_flight_plan\Controller\FlightPlanStatusController::statuses'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+  methods: [GET]
+
