@@ -188,6 +188,64 @@ class FlightPlanValidator {
         $flight_plan->get('field_arrival_droneport')->entity;
     }
 
+    $has_departure_datetime = (
+      $flight_plan->hasField('field_departure_datetime') &&
+      !$flight_plan->get('field_departure_datetime')->isEmpty()
+    );
+
+    $has_flight_path = (
+      $flight_plan->hasField('field_flight_path') &&
+      !$flight_plan->get('field_flight_path')->isEmpty()
+    );
+
+    /*
+     * A Flight Plan must be one of two valid structures:
+     *
+     * Reusable:
+     * - no departure datetime
+     * - no departure DronePort
+     * - no arrival DronePort
+     * - no Routes
+     *
+     * Scheduled:
+     * - departure datetime
+     * - departure DronePort
+     * - arrival DronePort
+     * - at least one Route
+     */
+    if ($has_departure_datetime) {
+      if (!$departure_droneport) {
+        $errors[] =
+          'A Flight Plan with a Departure Date and Time requires a Departure DronePort.';
+      }
+
+      if (!$arrival_droneport) {
+        $errors[] =
+          'A Flight Plan with a Departure Date and Time requires an Arrival DronePort.';
+      }
+
+      if (!$has_flight_path) {
+        $errors[] =
+          'A Flight Plan with a Departure Date and Time requires at least one Route in the Flight Path.';
+      }
+    }
+    else {
+      if ($departure_droneport) {
+        $errors[] =
+          'A Flight Plan without a Departure Date and Time cannot include a Departure DronePort.';
+      }
+
+      if ($arrival_droneport) {
+        $errors[] =
+          'A Flight Plan without a Departure Date and Time cannot include an Arrival DronePort.';
+      }
+
+      if ($has_flight_path) {
+        $errors[] =
+          'A Flight Plan without a Departure Date and Time cannot include Routes in the Flight Path.';
+      }
+    }
+
     /*
      * When a DronePort is selected, it must belong to the corresponding Site.
      */
@@ -249,41 +307,6 @@ class FlightPlanValidator {
           $destination_site->label()
         );
       }
-    }
-
-    /*
-     * Same-Site flights may be:
-     *
-     * - free flight with no DronePorts or Routes; or
-     * - an intra-Site routed flight between DronePorts.
-     *
-     * Therefore, no additional required-field rule applies here.
-     */
-    if ((int) $origin_site->id() === (int) $destination_site->id()) {
-      return;
-    }
-
-    /*
-     * Inter-Site flights require both endpoint DronePorts and at least one
-     * selected Route. FlightPathOrderingService will subsequently validate
-     * that the Route chain starts and ends at those DronePorts.
-     */
-    if (!$departure_droneport) {
-      $errors[] =
-        'Flights between different Sites require a Departure DronePort.';
-    }
-
-    if (!$arrival_droneport) {
-      $errors[] =
-        'Flights between different Sites require an Arrival DronePort.';
-    }
-
-    if (
-      !$flight_plan->hasField('field_flight_path') ||
-      $flight_plan->get('field_flight_path')->isEmpty()
-    ) {
-      $errors[] =
-        'Flights between different Sites require at least one Route in the Flight Path.';
     }
 
   }
