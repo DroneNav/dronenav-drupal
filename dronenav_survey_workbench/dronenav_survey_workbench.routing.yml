@@ -3,6 +3,8 @@ dronenav_survey_workbench.dashboard:
   defaults:
     _controller: '\Drupal\dronenav_survey_workbench\Controller\WorkbenchController::dashboard'
     _title: 'Survey Workbench'
+  requirements:
+    _permission: 'perform dronenav overlay surveys'
 
 dronenav_survey_workbench.sync_overlays:
   path: '/admin/sync-overlays'
@@ -17,6 +19,8 @@ dronenav_survey_workbench.react_map_test:
   defaults:
     _controller: '\Drupal\dronenav_survey_workbench\Controller\WorkbenchController::reactMapTest'
     _title: 'React Map Test'
+  requirements:
+    _permission: 'perform dronenav overlay surveys'
 
 dronenav_survey_workbench.survey_map:
   path: '/survey-workbench/survey/{nid}/map'
