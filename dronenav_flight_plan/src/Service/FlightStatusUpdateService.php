@@ -36,6 +36,7 @@ final class FlightStatusUpdateService {
     'cancelled' => 'Cancelled',
     'completed' => 'Completed',
     'draft' => 'Draft',
+    'expired' => 'Expired',
     'rejected' => 'Rejected',
     'submitted' => 'Submitted',
   ];
@@ -46,8 +47,8 @@ final class FlightStatusUpdateService {
    * Current status labels are normalized to lowercase.
    */
   private const ALLOWED_TRANSITIONS = [
-    'submitted' => ['active', 'authorized'],
-    'authorized' => ['active'],
+    'submitted' => ['active', 'authorized', 'expired'],
+    'authorized' => ['active', 'expired'],
     'active' => ['submitted', 'completed'],
   ];
 
