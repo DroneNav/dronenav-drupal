@@ -1,0 +1,160 @@
+dronenav_api.gateway.sites:
+  path: '/api-gateway/sites'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\SiteGatewayController::list'
+  requirements:
+    _permission: 'access dronenav api gateway'
+  methods: [GET]
+dronenav_api.gateway.site:
+  path: '/api-gateway/sites/{site_id}'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\SiteGatewayController::get'
+  requirements:
+    _permission: 'access dronenav api gateway'
+    site_id: '[0-9a-fA-F-]+'
+  methods: [GET]
+dronenav_api.gateway.create_site:
+  path: '/api-gateway/sites'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\SiteGatewayController::createSite'
+  requirements:
+    _permission: 'edit dronenav overlays'
+  methods: [POST]
+dronenav_api.gateway.update_site:
+  path: '/api-gateway/sites/{site_id}'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\SiteGatewayController::updateSite'
+  requirements:
+    _permission: 'edit dronenav overlays'
+    site_id: '[0-9a-fA-F-]+'
+  methods: [PATCH]
+dronenav_api.gateway.delete_site:
+  path: '/api-gateway/sites/{site_id}'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\SiteGatewayController::delete'
+  requirements:
+    _permission: 'delete dronenav overlays'
+    site_id: '[0-9a-fA-F-]+'
+  methods: [DELETE]
+dronenav_api.gateway.zones:
+  path: '/api-gateway/zones'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\ZoneGatewayController::list'
+  requirements:
+    _permission: 'access dronenav api gateway'
+  methods: [GET]
+dronenav_api.gateway.zone:
+  path: '/api-gateway/zones/{zone_id}'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\ZoneGatewayController::get'
+  requirements:
+    _permission: 'access dronenav api gateway'
+    zone_id: '[0-9a-fA-F-]+'
+  methods: [GET]
+dronenav_api.gateway.create_zone:
+  path: '/api-gateway/zones'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\ZoneGatewayController::createZone'
+  requirements:
+    _permission: 'edit dronenav overlays'
+  methods: [POST]
+dronenav_api.gateway.update_zone:
+  path: '/api-gateway/zones/{zone_id}'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\ZoneGatewayController::updateZone'
+  requirements:
+    _permission: 'edit dronenav overlays'
+    zone_id: '[0-9a-fA-F-]+'
+  methods: [PATCH]
+dronenav_api.gateway.delete_zone:
+  path: '/api-gateway/zones/{zone_id}'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\ZoneGatewayController::delete'
+  requirements:
+    _permission: 'delete dronenav overlays'
+    zone_id: '[0-9a-fA-F-]+'
+  methods: [DELETE]
+dronenav_api.gateway.droneports:
+  path: '/api-gateway/droneports'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\DroneportGatewayController::list'
+  requirements:
+    _permission: 'access dronenav api gateway'
+  methods: [GET]
+dronenav_api.gateway.droneport:
+  path: '/api-gateway/droneports/{droneport_id}'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\DroneportGatewayController::get'
+  requirements:
+    _permission: 'access dronenav api gateway'
+    droneport_id: '[0-9a-fA-F-]+'
+  methods: [GET]
+dronenav_api.gateway.create_droneport:
+  path: '/api-gateway/droneports'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\DroneportGatewayController::createDroneport'
+  requirements:
+    _permission: 'edit dronenav overlays'
+  methods: [POST]
+dronenav_api.gateway.update_droneport:
+  path: '/api-gateway/droneports/{droneport_id}'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\DroneportGatewayController::updateDroneport'
+  requirements:
+    _permission: 'edit dronenav overlays'
+    droneport_id: '[0-9a-fA-F-]+'
+  methods: [PATCH]
+dronenav_api.gateway.delete_droneport:
+  path: '/api-gateway/droneports/{droneport_id}'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\DroneportGatewayController::delete'
+  requirements:
+    _permission: 'delete dronenav overlays'
+    droneport_id: '[0-9a-fA-F-]+'
+  methods: [DELETE]
+dronenav_api.gateway.routes:
+  path: '/api-gateway/routes'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\RouteGatewayController::list'
+  requirements:
+    _permission: 'access dronenav api gateway'
+  methods: [GET]
+dronenav_api.gateway.route:
+  path: '/api-gateway/routes/{route_id}'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\RouteGatewayController::get'
+  requirements:
+    _permission: 'access dronenav api gateway'
+    route_id: '[0-9a-fA-F-]+'
+  methods: [GET]
+dronenav_api.gateway.create_route:
+  path: '/api-gateway/routes'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\RouteGatewayController::createRoute'
+  requirements:
+    _permission: 'edit dronenav overlays'
+  methods: [POST]
+dronenav_api.gateway.update_route:
+  path: '/api-gateway/routes/{route_id}'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\RouteGatewayController::updateRoute'
+  requirements:
+    _permission: 'edit dronenav overlays'
+    route_id: '[0-9a-fA-F-]+'
+  methods: [PATCH]
+dronenav_api.gateway.delete_route:
+  path: '/api-gateway/routes/{route_id}'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\RouteGatewayController::delete'
+  requirements:
+    _permission: 'delete dronenav overlays'
+    route_id: '[0-9a-fA-F-]+'
+  methods: [DELETE]
+dronenav_api.gateway.reference-data:
+  path: '/api-gateway/reference-data'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\ReferenceDataGatewayController::get'
+  requirements:
+    _permission: 'access dronenav api gateway'
+  methods: [GET]
+
