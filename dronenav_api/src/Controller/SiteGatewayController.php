@@ -72,6 +72,25 @@ final class SiteGatewayController extends ControllerBase {
   }
 
   /**
+   * Returns Site Package from the DroneNav API.
+   */
+  public function getPackage(string $site_id): JsonResponse {
+    $result = $this->gateway->getSitePackage($site_id);
+
+    if (!$result['success']) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => $result['message'],
+      ], $result['status']);
+    }
+
+    return new JsonResponse(
+      $result['data'],
+      $result['status']
+    );
+  }
+
+  /**
    * Creates a Site.
    */
   public function createSite(Request $request): JsonResponse {

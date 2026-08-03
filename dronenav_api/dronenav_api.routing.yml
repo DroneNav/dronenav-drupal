@@ -5,6 +5,7 @@ dronenav_api.gateway.sites:
   requirements:
     _permission: 'access dronenav api gateway'
   methods: [GET]
+
 dronenav_api.gateway.site:
   path: '/api-gateway/sites/{site_id}'
   defaults:
@@ -13,6 +14,16 @@ dronenav_api.gateway.site:
     _permission: 'access dronenav api gateway'
     site_id: '[0-9a-fA-F-]+'
   methods: [GET]
+
+dronenav_api.gateway.site_package:
+  path: '/api-gateway/sites/{site_id}/package'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\SiteGatewayController::getPackage'
+  requirements:
+    _permission: 'access dronenav api gateway'
+    site_id: '[0-9a-fA-F-]+'
+  methods: [GET]
+
 dronenav_api.gateway.create_site:
   path: '/api-gateway/sites'
   defaults:
@@ -20,6 +31,7 @@ dronenav_api.gateway.create_site:
   requirements:
     _permission: 'edit dronenav overlays'
   methods: [POST]
+
 dronenav_api.gateway.update_site:
   path: '/api-gateway/sites/{site_id}'
   defaults:
@@ -28,6 +40,7 @@ dronenav_api.gateway.update_site:
     _permission: 'edit dronenav overlays'
     site_id: '[0-9a-fA-F-]+'
   methods: [PATCH]
+
 dronenav_api.gateway.delete_site:
   path: '/api-gateway/sites/{site_id}'
   defaults:
@@ -36,6 +49,7 @@ dronenav_api.gateway.delete_site:
     _permission: 'delete dronenav overlays'
     site_id: '[0-9a-fA-F-]+'
   methods: [DELETE]
+
 dronenav_api.gateway.zones:
   path: '/api-gateway/zones'
   defaults:
@@ -43,6 +57,7 @@ dronenav_api.gateway.zones:
   requirements:
     _permission: 'access dronenav api gateway'
   methods: [GET]
+
 dronenav_api.gateway.zone:
   path: '/api-gateway/zones/{zone_id}'
   defaults:
@@ -51,6 +66,7 @@ dronenav_api.gateway.zone:
     _permission: 'access dronenav api gateway'
     zone_id: '[0-9a-fA-F-]+'
   methods: [GET]
+
 dronenav_api.gateway.create_zone:
   path: '/api-gateway/zones'
   defaults:
@@ -58,6 +74,7 @@ dronenav_api.gateway.create_zone:
   requirements:
     _permission: 'edit dronenav overlays'
   methods: [POST]
+
 dronenav_api.gateway.update_zone:
   path: '/api-gateway/zones/{zone_id}'
   defaults:
@@ -66,6 +83,7 @@ dronenav_api.gateway.update_zone:
     _permission: 'edit dronenav overlays'
     zone_id: '[0-9a-fA-F-]+'
   methods: [PATCH]
+
 dronenav_api.gateway.delete_zone:
   path: '/api-gateway/zones/{zone_id}'
   defaults:
@@ -74,6 +92,7 @@ dronenav_api.gateway.delete_zone:
     _permission: 'delete dronenav overlays'
     zone_id: '[0-9a-fA-F-]+'
   methods: [DELETE]
+
 dronenav_api.gateway.droneports:
   path: '/api-gateway/droneports'
   defaults:
@@ -81,6 +100,7 @@ dronenav_api.gateway.droneports:
   requirements:
     _permission: 'access dronenav api gateway'
   methods: [GET]
+
 dronenav_api.gateway.droneport:
   path: '/api-gateway/droneports/{droneport_id}'
   defaults:
@@ -89,6 +109,7 @@ dronenav_api.gateway.droneport:
     _permission: 'access dronenav api gateway'
     droneport_id: '[0-9a-fA-F-]+'
   methods: [GET]
+
 dronenav_api.gateway.create_droneport:
   path: '/api-gateway/droneports'
   defaults:
@@ -96,6 +117,7 @@ dronenav_api.gateway.create_droneport:
   requirements:
     _permission: 'edit dronenav overlays'
   methods: [POST]
+
 dronenav_api.gateway.update_droneport:
   path: '/api-gateway/droneports/{droneport_id}'
   defaults:
@@ -104,6 +126,7 @@ dronenav_api.gateway.update_droneport:
     _permission: 'edit dronenav overlays'
     droneport_id: '[0-9a-fA-F-]+'
   methods: [PATCH]
+
 dronenav_api.gateway.delete_droneport:
   path: '/api-gateway/droneports/{droneport_id}'
   defaults:
@@ -112,6 +135,7 @@ dronenav_api.gateway.delete_droneport:
     _permission: 'delete dronenav overlays'
     droneport_id: '[0-9a-fA-F-]+'
   methods: [DELETE]
+
 dronenav_api.gateway.routes:
   path: '/api-gateway/routes'
   defaults:
@@ -119,6 +143,7 @@ dronenav_api.gateway.routes:
   requirements:
     _permission: 'access dronenav api gateway'
   methods: [GET]
+
 dronenav_api.gateway.route:
   path: '/api-gateway/routes/{route_id}'
   defaults:
@@ -127,6 +152,16 @@ dronenav_api.gateway.route:
     _permission: 'access dronenav api gateway'
     route_id: '[0-9a-fA-F-]+'
   methods: [GET]
+
+dronenav_api.gateway.route_context_package:
+  path: '/api-gateway/routes/{route_id}/context-package'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\RouteGatewayController::getContextPackage'
+  requirements:
+    _permission: 'access dronenav api gateway'
+    route_id: '[0-9a-fA-F-]+'
+  methods: [GET]
+
 dronenav_api.gateway.create_route:
   path: '/api-gateway/routes'
   defaults:
@@ -134,6 +169,7 @@ dronenav_api.gateway.create_route:
   requirements:
     _permission: 'edit dronenav overlays'
   methods: [POST]
+
 dronenav_api.gateway.update_route:
   path: '/api-gateway/routes/{route_id}'
   defaults:
@@ -142,6 +178,7 @@ dronenav_api.gateway.update_route:
     _permission: 'edit dronenav overlays'
     route_id: '[0-9a-fA-F-]+'
   methods: [PATCH]
+
 dronenav_api.gateway.delete_route:
   path: '/api-gateway/routes/{route_id}'
   defaults:
@@ -150,6 +187,7 @@ dronenav_api.gateway.delete_route:
     _permission: 'delete dronenav overlays'
     route_id: '[0-9a-fA-F-]+'
   methods: [DELETE]
+
 dronenav_api.gateway.reference-data:
   path: '/api-gateway/reference-data'
   defaults:
@@ -157,4 +195,183 @@ dronenav_api.gateway.reference-data:
   requirements:
     _permission: 'access dronenav api gateway'
   methods: [GET]
+
+dronenav_api.gateway.flight_context:
+  path: '/api-gateway/flight-context'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\FlightContextGatewayController::get'
+  requirements:
+    _permission: 'access dronenav flight context'
+  methods: [POST]
+
+dronenav_api.gateway.overlay_package:
+  path: '/api-gateway/governance/overlays/{overlay_id}/package'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::getPackage'
+  requirements:
+    _permission: 'access dronenav overlay package'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [GET]
+
+dronenav_api.gateway.survey_overlay_package:
+  path: '/api-gateway/governance/overlays/{overlay_id}/survey-package'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::surveyPackage'
+  requirements:
+    _permission: 'edit dronenav overlay survey package'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [POST]
+
+dronenav_api.gateway.expire_survey_package:
+  path: '/api-gateway/governance/overlays/{overlay_id}/expire-survey-package'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::expireSurveyPackage'
+  requirements:
+    _permission: 'govern dronenav overlay'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [POST]
+
+dronenav_api.gateway.activate_site_package:
+  path: '/api-gateway/governance/overlays/sites/{overlay_id}/activate-package'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::activatePackage'
+  requirements:
+    _permission: 'govern dronenav overlay'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [POST]
+
+dronenav_api.gateway.deactivate_site_package:
+  path: '/api-gateway/governance/overlays/sites/{overlay_id}/deactivate-package'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::deactivatePackage'
+  requirements:
+    _permission: 'govern dronenav overlay'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [POST]
+
+dronenav_api.gateway.survey_site_overlay:
+  path: '/api-gateway/governance/overlays/sites/{overlay_id}/survey'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::surveySiteOverlay'
+  requirements:
+    _permission: 'survey dronenav overlays'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [POST]
+
+dronenav_api.gateway.survey_zone_overlay:
+  path: '/api-gateway/governance/overlays/zones/{overlay_id}/survey'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::surveyZoneOverlay'
+  requirements:
+    _permission: 'survey dronenav overlays'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [POST]
+
+dronenav_api.gateway.survey_droneport_overlay:
+  path: '/api-gateway/governance/overlays/droneports/{overlay_id}/survey'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::surveyDroneportOverlay'
+  requirements:
+    _permission: 'survey dronenav overlays'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [POST]
+
+dronenav_api.gateway.survey_route_overlay:
+  path: '/api-gateway/governance/overlays/routes/{overlay_id}/survey'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::surveyRouteOverlay'
+  requirements:
+    _permission: 'survey dronenav overlays'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [POST]
+
+dronenav_api.gateway.expire_survey_site_overlay:
+  path: '/api-gateway/governance/overlays/sites/{overlay_id}/expire-survey'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::expireSurveySiteOverlay'
+  requirements:
+    _permission: 'survey dronenav overlays'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [POST]
+
+dronenav_api.gateway.expire_survey_zone_overlay:
+  path: '/api-gateway/governance/overlays/zones/{overlay_id}/expire-survey'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::expireSurveyZoneOverlay'
+  requirements:
+    _permission: 'survey dronenav overlays'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [POST]
+
+dronenav_api.gateway.expire_survey_droneport_overlay:
+  path: '/api-gateway/governance/overlays/droneports/{overlay_id}/expire-survey'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::expireSurveyDroneportOverlay'
+  requirements:
+    _permission: 'survey dronenav overlays'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [POST]
+
+dronenav_api.gateway.expire_survey_route_overlay:
+  path: '/api-gateway/governance/overlays/routes/{overlay_id}/expire-survey'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::expireSurveyRouteOverlay'
+  requirements:
+    _permission: 'survey dronenav overlays'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [POST]
+
+dronenav_api.gateway.activate_zone_overlay:
+  path: '/api-gateway/governance/overlays/zones/{overlay_id}/activate'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::activateZoneOverlay'
+  requirements:
+    _permission: 'govern dronenav overlays'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [POST]
+
+dronenav_api.gateway.activate_droneport_overlay:
+  path: '/api-gateway/governance/overlays/droneports/{overlay_id}/activate'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::activateDroneportOverlay'
+  requirements:
+    _permission: 'govern dronenav overlays'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [POST]
+
+dronenav_api.gateway.activate_route_overlay:
+  path: '/api-gateway/governance/overlays/routes/{overlay_id}/activate'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::activateRouteOverlay'
+  requirements:
+    _permission: 'govern dronenav overlays'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [POST]
+
+dronenav_api.gateway.deactivate_zone_overlay:
+  path: '/api-gateway/governance/overlays/zones/{overlay_id}/deactivate'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::deactivateZoneOverlay'
+  requirements:
+    _permission: 'govern dronenav overlays'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [POST]
+
+dronenav_api.gateway.deactivate_droneport_overlay:
+  path: '/api-gateway/governance/overlays/droneports/{overlay_id}/deactivate'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::deactivateDroneportOverlay'
+  requirements:
+    _permission: 'govern dronenav overlays'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [POST]
+
+dronenav_api.gateway.deactivate_route_overlay:
+  path: '/api-gateway/governance/overlays/routes/{overlay_id}/deactivate'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\GovernanceOverlayGatewayController::deactivateRouteOverlay'
+  requirements:
+    _permission: 'govern dronenav overlays'
+    overlay_id: '[0-9a-fA-F-]+'
+  methods: [POST]
 

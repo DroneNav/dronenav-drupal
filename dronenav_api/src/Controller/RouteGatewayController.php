@@ -72,6 +72,25 @@ final class RouteGatewayController extends ControllerBase {
   }
 
   /**
+   * Returns Route Context Package from the DroneNav API.
+   */
+  public function getContextPackage(string $route_id): JsonResponse {
+    $result = $this->gateway->getRouteContextPackage($route_id);
+
+    if (!$result['success']) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => $result['message'],
+      ], $result['status']);
+    }
+
+    return new JsonResponse(
+      $result['data'],
+      $result['status']
+    );
+  }
+
+  /**
    * Creates a Route.
    */
   public function createRoute(Request $request): JsonResponse {

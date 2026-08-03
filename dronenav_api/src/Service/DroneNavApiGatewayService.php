@@ -15,6 +15,30 @@ use Psr\Log\LoggerInterface;
  */
 final class DroneNavApiGatewayService {
 
+  private const ALLOWED_OVERLAY_TYPES = [
+    'site',
+    'zone',
+    'droneport',
+    'route',
+  ];
+
+  /**
+   * Validates and normalizes an overlay type.
+   */
+  private function validateOverlayType(
+    string $overlay_type
+  ): ?string {
+    $overlay_type = strtolower(trim($overlay_type));
+
+    return in_array(
+      $overlay_type,
+      self::ALLOWED_OVERLAY_TYPES,
+      TRUE
+    )
+      ? $overlay_type
+      : NULL;
+  }
+
   /**
    * Constructs the DroneNav API gateway service.
    */
@@ -81,14 +105,18 @@ final class DroneNavApiGatewayService {
     $url = $base_url . $path;
 
     $request_options = array_replace_recursive([
-      'headers' => [
-        'Accept' => 'application/json',
-        'Authorization' => 'Bearer ' . $gateway_token,
-      ],
       'connect_timeout' => 5,
       'timeout' => 15,
       'http_errors' => FALSE,
     ], $options);
+
+    $request_options['headers'] = array_merge(
+      $request_options['headers'] ?? [],
+      [
+        'Accept' => 'application/json',
+        'Authorization' => 'Bearer ' . $gateway_token,
+      ]
+    );
 
     try {
       $response = $this->httpClient->request(
@@ -192,6 +220,27 @@ final class DroneNavApiGatewayService {
     return $this->request(
       'GET',
       '/api/sites/' . $site_id
+    );
+  }
+
+  /**
+   * Loads DroneNav Site Package.
+   */
+  public function getSitePackage(string $site_id): array {
+    $site_id = trim($site_id);
+
+    if ($site_id === '') {
+      return [
+        'success' => FALSE,
+        'status' => 400,
+        'data' => NULL,
+        'message' => 'The Site ID is required.',
+      ];
+    }
+
+    return $this->request(
+      'GET',
+      '/api/sites/' . $site_id . '/package'
     );
   }
 
@@ -325,7 +374,7 @@ final class DroneNavApiGatewayService {
   }
 
   /**
-   * Loads all DroneNav DronePorts.
+   * Loads all DroneNav Droneports.
    */
   public function getDroneports(): array {
     return $this->request(
@@ -335,7 +384,7 @@ final class DroneNavApiGatewayService {
   }
 
   /**
-   * Loads one DroneNav DronePort.
+   * Loads one DroneNav Droneport.
    */
   public function getDroneport(string $droneport_id): array {
     $droneport_id = trim($droneport_id);
@@ -436,6 +485,27 @@ final class DroneNavApiGatewayService {
   }
 
   /**
+   * Loads DroneNav Route Context Package.
+   */
+  public function getRouteContextPackage(string $route_id): array {
+    $route_id = trim($route_id);
+
+    if ($route_id === '') {
+      return [
+        'success' => FALSE,
+        'status' => 400,
+        'data' => NULL,
+        'message' => 'The Route ID is required.',
+      ];
+    }
+
+    return $this->request(
+      'GET',
+      '/api/routes/' . $route_id . '/context-package'
+    );
+  }
+
+  /**
    * Creates a new DroneNav Route.
    */
   public function createRoute(array $route): array {
@@ -494,7 +564,232 @@ final class DroneNavApiGatewayService {
     );
   }
 
+  /**
+   * Get the flight context.
+   */
+  public function getFlightContext(array $body): array {
 
+    return $this->request(
+      'POST',
+      '/api/flight-context',
+      [
+        'json' => $body,
+      ]
+    );
+  }
+
+  /**
+   * Loads one DroneNav Overlay Site Package.
+   */
+  public function getOverlayPackage(string $overlay_id): array {
+    $overlay_id = trim($overlay_id);
+
+    if ($overlay_id === '') {
+      return [
+        'success' => FALSE,
+        'status' => 400,
+        'data' => NULL,
+        'message' => 'The Overlay Site ID is required.',
+      ];
+    }
+
+    return $this->request(
+      'GET',
+      '/api/governance/overlays/' . $overlay_id . '/package'
+    );
+  }
+
+  /**
+   * Submit Survey of DroneNav Overlay Site Package.
+   */
+  public function surveyOverlayPackage(string $overlay_id, array $package): array {
+
+    return $this->request(
+      'POST',
+      '/api/governance/overlays/' . $overlay_id . '/survey-package',
+      [
+        'json' => $package,
+      ]
+    );
+  }
+
+  /**
+   * Expire Survey of DroneNav Overlay Site Package.
+   */
+  public function expireSurveyOverlayPackage(string $overlay_id, array $package): array {
+
+    return $this->request(
+      'POST',
+      '/api/governance/overlays/' . $overlay_id . '/expire-survey-package',
+      [
+        'json' => $package,
+      ]
+    );
+  }
+
+  /**
+   * Activate DroneNav Site Package.
+   */
+  public function activateSitePackage(string $overlay_id, array $package): array {
+
+    return $this->request(
+      'POST',
+      '/api/governance/overlays/sites/' . $overlay_id . '/activate-package',
+      [
+        'json' => $package,
+      ]
+    );
+  }
+
+  /**
+   * Deactivate DroneNav Site Package.
+   */
+  public function deactivateSitePackage(string $overlay_id, array $package): array {
+
+    return $this->request(
+      'POST',
+      '/api/governance/overlays/sites/' . $overlay_id . '/deactivate-package',
+      [
+        'json' => $package,
+      ]
+    );
+  }
+
+  /**
+   * Marks an overlay as surveyed.
+   */
+  public function surveyOverlay(
+    string $overlay_type,
+    string $overlay_id,
+    array $payload
+  ): array {
+
+    $overlay_type = $this->validateOverlayType($overlay_type);
+    $overlay_id = trim($overlay_id);
+
+    if ($overlay_type === NULL || $overlay_id === '') {
+      return [
+        'success' => FALSE,
+        'status' => 400,
+        'data' => NULL,
+        'message' => 'A valid overlay type and ID are required.',
+      ];
+    }
+
+    return $this->request(
+      'POST',
+      '/api/governance/overlays/'
+        . $overlay_type
+        . 's/'
+        . $overlay_id
+        . '/survey',
+      [
+        'json' => $payload,
+      ]
+    );
+  }
+
+  /**
+   * Marks an overlay as surveyed expired.
+   */
+  public function expireSurveyOverlay(
+    string $overlay_type,
+    string $overlay_id,
+    array $payload
+  ): array {
+
+    $overlay_type = $this->validateOverlayType($overlay_type);
+    $overlay_id = trim($overlay_id);
+
+    if ($overlay_type === NULL || $overlay_id === '') {
+      return [
+        'success' => FALSE,
+        'status' => 400,
+        'data' => NULL,
+        'message' => 'A valid overlay type and ID are required.',
+      ];
+    }
+
+    return $this->request(
+      'POST',
+      '/api/governance/overlays/'
+        . $overlay_type
+        . 's/'
+        . $overlay_id
+        . '/expire-survey',
+      [
+        'json' => $payload,
+      ]
+    );
+  }
+
+  /**
+   * Marks an overlay as activated.
+   */
+  public function activateOverlay(
+    string $overlay_type,
+    string $overlay_id,
+    array $payload
+  ): array {
+
+    $overlay_type = $this->validateOverlayType($overlay_type);
+    $overlay_id = trim($overlay_id);
+
+    if ($overlay_type === NULL || $overlay_id === '') {
+      return [
+        'success' => FALSE,
+        'status' => 400,
+        'data' => NULL,
+        'message' => 'A valid overlay type and ID are required.',
+      ];
+    }
+
+    return $this->request(
+      'POST',
+      '/api/governance/overlays/'
+        . $overlay_type
+        . 's/'
+        . $overlay_id
+        . '/activate',
+      [
+        'json' => $payload,
+      ]
+    );
+  }
+
+  /**
+   * Marks an overlay as deactivated.
+   */
+  public function deactivateOverlay(
+    string $overlay_type,
+    string $overlay_id,
+    array $payload
+  ): array {
+
+    $overlay_type = $this->validateOverlayType($overlay_type);
+    $overlay_id = trim($overlay_id);
+
+    if ($overlay_type === NULL || $overlay_id === '') {
+      return [
+        'success' => FALSE,
+        'status' => 400,
+        'data' => NULL,
+        'message' => 'A valid overlay type and ID are required.',
+      ];
+    }
+
+    return $this->request(
+      'POST',
+      '/api/governance/overlays/'
+        . $overlay_type
+        . 's/'
+        . $overlay_id
+        . '/deactivate',
+      [
+        'json' => $payload,
+      ]
+    );
+  }
 
 
 }
