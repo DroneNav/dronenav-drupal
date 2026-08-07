@@ -157,4 +157,97 @@ class FlightExecutionService {
     }
   }
 
+
+  public function cancelFlightExecution(
+    string $flight_execution_uuid
+  ): array {
+
+    $flight_execution_uuid = trim($flight_execution_uuid);
+
+    if ($flight_execution_uuid === '') {
+      return [
+        'success' => FALSE,
+        'message' => 'The Flight Execution Record UUID is missing.',
+        'data' => NULL,
+      ];
+    }
+
+    $url = sprintf(
+      '%s/api/flight-executions/%s/cancel',
+      $this->apiBaseUrl,
+      rawurlencode($flight_execution_uuid)
+    );
+
+    try {
+      $response = $this->httpClient->request('POST', $url, [
+        'headers' => [
+          'Accept' => 'application/json',
+          'Content-Type' => 'application/json',
+        ],
+        'json' => [
+        ],
+        'timeout' => 15,
+        'http_errors' => FALSE,
+      ]);
+
+      $status_code = $response->getStatusCode();
+      $body = (string) $response->getBody();
+
+      $data = [];
+
+      if ($body !== '') {
+        $decoded = json_decode($body, TRUE);
+
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+          $data = $decoded;
+        }
+      }
+
+      if ($status_code >= 200 && $status_code < 300) {
+        return [
+          'success' => TRUE,
+          'message' => $data['message'] ?? 'Flight cancelled.',
+          'data' => $data,
+        ];
+      }
+
+      $message = $data['message']
+        ?? $data['error']
+        ?? 'The Flight Execution API rejected the cancel request.';
+
+      $this->logger->warning(
+        'Flight Execution cancel request for @uuid returned HTTP @status: @message',
+        [
+          '@uuid' => $flight_execution_uuid,
+          '@status' => $status_code,
+          '@message' => $message,
+        ]
+      );
+
+      return [
+        'success' => FALSE,
+        'message' => $message,
+        'data' => $data,
+      ];
+    }
+    catch (GuzzleException $e) {
+      $this->logger->error(
+        'Flight Execution cancel request for @uuid failed: @message',
+        [
+          '@uuid' => $flight_execution_uuid,
+          '@message' => $e->getMessage(),
+        ]
+      );
+
+      return [
+        'success' => FALSE,
+        'message' => 'The Flight Execution API could not be reached.',
+        'data' => NULL,
+      ];
+    }
+  }
+
+
+
+
 }

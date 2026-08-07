@@ -86,6 +86,25 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
             )
           )->toString();
 
+          $status = strtolower(
+            trim(
+              $this->getEntityReferenceLabel(
+                $node,
+                'field_flight_plan_status'
+              )
+            )
+          );
+
+          if ($status === 'submitted' or $status === 'accepted') {
+            $operations[] = Link::fromTextAndUrl(
+              $this->t('Cancel'),
+              Url::fromRoute(
+                'dronenav_flight_plan.cancel',
+                ['node' => $node->id()]
+              )
+            )->toString();
+          }
+
           /*
            * Flight Plans with no requested departure datetime
            * may be launched manually.
@@ -793,6 +812,94 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
         ])
       );
     }
+
+    return $this->redirect('dronenav_flight_plan.list');
+  }
+
+  /**
+   * Cancels a submitted Flight Plan.
+   */
+  public function cancel(Node $node) {
+
+    if ($node->bundle() !== 'working_flight_plan') {
+      throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException();
+    }
+
+    if ((int) $node->getOwnerId() !== (int) $this->currentUser()->id()) {
+      throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException();
+    }
+
+    $current_status = strtolower(
+      trim(
+        $this->getEntityReferenceLabel(
+          $node,
+          'field_flight_plan_status'
+        )
+      )
+    );
+
+    if ($current_status !== 'submitted' and $current_status !== 'accepted') {
+      $this->messenger()->addError(
+        $this->t('Only Submitted and Accepted Flight Plans may be cancelled.')
+      );
+
+      return $this->redirect('dronenav_flight_plan.list');
+    }
+
+    $terms = \Drupal::entityTypeManager()
+      ->getStorage('taxonomy_term')
+      ->loadByProperties([
+        'vid' => 'flight_plan_status',
+        'name' => 'Cancelled',
+      ]);
+
+    $cancelled = reset($terms);
+
+    if (!$cancelled) {
+      $this->messenger()->addError(
+        $this->t('The Cancelled Flight Plan status could not be found.')
+      );
+
+      return $this->redirect('dronenav_flight_plan.list');
+    }
+
+    $flight_execution_id = (string) (
+      $node->get('field_flight_execution_id')->value ?? ''
+    );
+
+    if ($flight_execution_id === '') {
+      $this->messenger()->addError(
+        $this->t('The Flight Execution ID could not be found.')
+      );
+
+      return $this->redirect('dronenav_flight_plan.list');
+    }
+
+    $result = $this->flightExecutionService->cancelFlightExecution(
+      $flight_execution_id
+    );
+
+    if (!$result['success']) {
+      $this->messenger()->addError(
+        $this->t(
+          'The Flight Plan could not be cancelled: @message',
+          ['@message' => $result['message']]
+        )
+      );
+
+      return $this->redirect('dronenav_flight_plan.list');
+    }
+
+    $node->set(
+      'field_flight_plan_status',
+      ['target_id' => $cancelled->id()]
+    );
+
+    $node->save();
+
+    $this->messenger()->addStatus(
+      $this->t('The Flight Plan has been cancelled.')
+    );
 
     return $this->redirect('dronenav_flight_plan.list');
   }
