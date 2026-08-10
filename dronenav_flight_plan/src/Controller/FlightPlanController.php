@@ -165,6 +165,9 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
           )
         )->toString();
 
+        $departure = $node->get('field_departure_datetime')->value ?? '';
+        $departure = str_replace('T', ' ', $departure);
+
         $rows[] = [
           'data' => [
             [
@@ -184,7 +187,7 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
               ),
             ],
             [
-              'data' => $node->get('field_departure_datetime')->value ?? '',
+              'data' => $departure,
             ],
             [
               'data' => $this->getEntityReferenceLabel(
