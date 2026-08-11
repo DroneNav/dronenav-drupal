@@ -318,44 +318,16 @@ function dronenav_flight_plan_form_node_working_flight_plan_edit_form_alter(
       ->accessCheck(TRUE)
       ->condition('type', 'route')
       ->condition('status', 1)
-      ->condition(
-        'field_site_a',
-        [$origin_site_nid, $destination_site_nid],
-        'IN'
-      )
-      ->condition(
-        'field_site_b',
-        [$origin_site_nid, $destination_site_nid],
-        'IN'
-      )
-      ->sort('title')
       ->execute();
 
     if ($route_nids) {
       $routes = Node::loadMultiple($route_nids);
 
       foreach ($routes as $route) {
-        $site_a = $route
-          ->get('field_site_a')
-          ->target_id;
-
-        $site_b = $route
-          ->get('field_site_b')
-          ->target_id;
-
-        $forward_match =
-          (int) $site_a === (int) $origin_site_nid &&
-          (int) $site_b === (int) $destination_site_nid;
-
-        $reverse_match =
-          (int) $site_a === (int) $destination_site_nid &&
-          (int) $site_b === (int) $origin_site_nid;
-
-        if ($forward_match || $reverse_match) {
-          $route_options[$route->id()] = $route->label();
-        }
+        $route_options[$route->id()] = $route->label();
       }
     }
+
   }
 
   if (isset($form['field_flight_path']['widget']['#options'])) {
