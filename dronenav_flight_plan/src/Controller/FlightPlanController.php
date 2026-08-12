@@ -510,6 +510,15 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
     $site_uuids = [];
     $droneport_uuids = [];
     $route_uuids = [];
+    $flight_execution_id = '';
+
+    if (
+      $flight_plan->hasField('field_flight_execution_id') &&
+      !$flight_plan->get('field_flight_execution_id')->isEmpty()
+    ) {
+      $flight_execution_id = (string)
+        $flight_plan->get('field_flight_execution_id')->value;
+    }
 
     /*
      * Origin and destination Sites.
@@ -603,6 +612,7 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
         'data-context-zones' => '',
         'data-context-droneports' => implode(',', $droneport_uuids),
         'data-context-routes' => implode(',', $route_uuids),
+        'data-flight-execution-id' => $flight_execution_id,
         'style' => 'height: 700px; width: 100%;',
       ],
       '#attached' => [
