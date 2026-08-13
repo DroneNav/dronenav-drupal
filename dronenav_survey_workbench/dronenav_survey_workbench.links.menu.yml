@@ -1,0 +1,53 @@
+dronenav_survey_workbench.survey_parent:
+  title: 'Survey Workbench'
+  route_name: '<nolink>'
+  description: 'Create, view and manage overlay items.'
+  menu_name: main
+  weight: 10
+
+dronenav_survey_workbench.overlay_editor:
+  title: 'Overlay Editor'
+  route_name: dronenav_survey_workbench.surveyor_app
+  description: 'Create, update and delete overlay items.'
+  parent: dronenav_survey_workbench.survey_parent
+  weight: 0
+  options:
+    attributes:
+      target: '_blank'
+      rel: 'noopener'
+
+dronenav_survey_workbench.overlay_surveys:
+  title: 'Overlay Surveys'
+  route_name: view.surveys.page_1
+  description: 'Survey and submit overlays for approval.'
+  parent: dronenav_survey_workbench.survey_parent
+  weight: 10
+
+dronenav_survey_workbench.survey_summaries:
+  title: 'Survey Summaries'
+  route_name: view.survey_summaries.page_1
+  description: 'Survey and submit Site level overlays for approval.'
+  parent: dronenav_survey_workbench.survey_parent
+  weight: 20
+
+dronenav_survey_workbench.review_parent:
+  title: 'Review Workbench'
+  route_name: '<nolink>'
+  description: 'Manage reviews for surveyed overlays.'
+  menu_name: main
+  weight: 20
+
+dronenav_survey_workbench.overlay_reviews:
+  title: 'Overlay Reviews'
+  route_name: view.overlay_reviews.page_1
+  description: 'Review surveyed overlays.'
+  parent: dronenav_survey_workbench.review_parent
+  weight: 0
+
+dronenav_survey_workbench.operational_site_reviews:
+  title: 'Operational Site Reviews'
+  route_name: view.operational_site_reviews.page_1
+  description: 'Review surveyed overlays at the Site level.'
+  parent: dronenav_survey_workbench.review_parent
+  weight: 10
+

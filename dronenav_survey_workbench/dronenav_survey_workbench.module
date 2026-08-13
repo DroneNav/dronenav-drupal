@@ -541,3 +541,23 @@ function dronenav_survey_workbench_is_review_approved(\Drupal\node\Entity\Node $
   return $term && $term->label() === 'Approved';
 }
 
+/**
+ * Implements hook_theme().
+ */
+function dronenav_survey_workbench_theme(
+  $existing,
+  $type,
+  $theme,
+  $path
+): array {
+
+
+  return [
+    'surveyor_app' => [
+      'variables' => [],
+      'template' => 'surveyor-app',
+    ],
+  ];
+}
+
+

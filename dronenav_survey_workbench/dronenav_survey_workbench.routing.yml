@@ -6,6 +6,14 @@ dronenav_survey_workbench.dashboard:
   requirements:
     _permission: 'perform dronenav overlay surveys'
 
+dronenav_survey_workbench.surveyor_app:
+  path: '/surveyor'
+  defaults:
+    _controller: '\Drupal\dronenav_survey_workbench\Controller\WorkbenchController::surveyorApp'
+    _title: 'Overlay Editor'
+  requirements:
+    _permission: 'perform dronenav overlay surveys'
+
 dronenav_survey_workbench.sync_overlays:
   path: '/admin/sync-overlays'
   defaults:

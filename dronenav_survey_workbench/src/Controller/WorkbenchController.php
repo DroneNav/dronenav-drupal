@@ -3,8 +3,26 @@
 namespace Drupal\dronenav_survey_workbench\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Render\BareHtmlPageRendererInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+
 
 class WorkbenchController extends ControllerBase {
+
+  protected BareHtmlPageRendererInterface $bareHtmlPageRenderer;
+
+
+  public function __construct(
+    BareHtmlPageRendererInterface $bare_html_page_renderer
+  ) {
+    $this->bareHtmlPageRenderer = $bare_html_page_renderer;
+  }
+
+  public static function create(ContainerInterface $container): static {
+    return new static(
+      $container->get('bare_html_page_renderer')
+    );
+  }
 
   public function dashboard(): array {
     return [
@@ -146,6 +164,32 @@ class WorkbenchController extends ControllerBase {
       ],
     ];
   }
+
+  /**
+   * Displays the full Surveyor React application.
+   */
+  public function surveyorApp() {
+    $content = [
+      '#theme' => 'surveyor_app',
+      '#attached' => [
+        'library' => [
+          'dronenav_survey_workbench/react_map',
+        ],
+      ],
+      '#cache' => [
+        'max-age' => 0,
+      ],
+    ];
+
+
+
+    return $this->bareHtmlPageRenderer->renderBarePage(
+      $content,
+      'Overlay Editor',
+      'page'
+    );
+  }
+
 
 }
 
