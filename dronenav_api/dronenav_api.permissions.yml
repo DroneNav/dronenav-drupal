@@ -18,3 +18,7 @@ delete dronenav overlays:
   description: 'Delete DroneNav Overlays.'
   restrict access: true
 
+access dronenav flight context:
+  title: 'Access DroneNav Flight Context'
+  description: 'Allows access to the DroneNav flight context gateway.'
+  restrict access: true

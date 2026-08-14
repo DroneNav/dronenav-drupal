@@ -579,6 +579,27 @@ final class DroneNavApiGatewayService {
   }
 
   /**
+   * Loads the actual flight path.
+   */
+  public function getActualPath(string $flight_execution_id): array {
+    $flight_execution_id = trim($flight_execution_id);
+
+    if ($flight_execution_id === '') {
+      return [
+        'success' => FALSE,
+        'status' => 400,
+        'data' => NULL,
+        'message' => 'The Flight Execution ID is required.',
+      ];
+    }
+
+    return $this->request(
+      'GET',
+      '/api/actual-paths/' . $flight_execution_id
+    );
+  }
+
+  /**
    * Loads one DroneNav Overlay Site Package.
    */
   public function getOverlayPackage(string $overlay_id): array {

@@ -204,6 +204,14 @@ dronenav_api.gateway.flight_context:
     _permission: 'access dronenav flight context'
   methods: [POST]
 
+dronenav_api.gateway.actual_paths:
+  path: '/api-gateway/actual-paths'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\ActualPathsGatewayController::get'
+  requirements:
+    _permission: 'access dronenav flight context'
+  methods: [GET]
+
 dronenav_api.gateway.overlay_package:
   path: '/api-gateway/governance/overlays/{overlay_id}/package'
   defaults:

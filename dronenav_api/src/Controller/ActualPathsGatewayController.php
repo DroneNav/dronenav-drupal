@@ -6,12 +6,11 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\dronenav_api\Service\DroneNavApiGatewayService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 
 /**
- * Provides Drupal gateway endpoints for DroneNav Reference Data.
+ * Provides Drupal gateway endpoints for DroneNav Actual Paths API.
  */
-final class FlightContextGatewayController extends ControllerBase {
+final class ActualPathsGatewayController extends ControllerBase {
 
   /**
    * Constructs the controller.
@@ -30,29 +29,15 @@ final class FlightContextGatewayController extends ControllerBase {
   }
 
   /**
-   * Returns a flight context.
+   * Returns the actual flight path.
    */
-  public function get(Request $request): JsonResponse {
-
-    $payload = json_decode(
-      $request->getContent(),
-      TRUE
-    );
-
-    if (!is_array($payload)) {
-      return new JsonResponse([
-        'success' => FALSE,
-        'message' => 'Invalid JSON request.',
-      ], 400);
-    }
-
-    $result = $this->gateway->getFlightContext($payload);
+  public function get(string $flight_execution_id): JsonResponse {
+    $result = $this->gateway->getActualPath($flight_execution_id);
 
     if (!$result['success']) {
       return new JsonResponse([
         'success' => FALSE,
         'message' => $result['message'],
-        'data' => $result['data'],
       ], $result['status']);
     }
 
