@@ -63,11 +63,14 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
 
     $rows = [];
 
+    $limit = 20;
+
     $nids = \Drupal::entityQuery('node')
       ->accessCheck(FALSE)
       ->condition('type', 'working_flight_plan')
       ->condition('uid', $this->currentUser()->id())
       ->sort('created', 'DESC')
+      ->pager($limit)
       ->execute();
 
     if (!empty($nids)) {
@@ -248,6 +251,9 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
         '#attributes' => [
              'style' => 'border-spacing: 10px 0px; border-collapse: separate;',
         ],
+      ],
+      'pager' => [
+        '#type' => 'pager',
       ],
     ];
 
