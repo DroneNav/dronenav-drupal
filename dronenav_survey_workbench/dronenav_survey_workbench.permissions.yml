@@ -1,4 +1,4 @@
-sync dronenav survey overlays:
+sync dronenav overlay surveys:
   title: 'Sync DroneNav Survey Overlays'
 
 perform dronenav overlay surveys:

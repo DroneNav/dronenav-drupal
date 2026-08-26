@@ -1,7 +1,6 @@
 access dronenav api gateway:
   title: 'Access DroneNav API gateway'
   description: 'Use authenticated DroneNav API gateway operations.'
-  restrict access: true
 
 edit dronenav overlays:
   title: 'Edit DroneNav Overlays'
@@ -21,4 +20,3 @@ delete dronenav overlays:
 access dronenav flight context:
   title: 'Access DroneNav Flight Context'
   description: 'Allows access to the DroneNav flight context gateway.'
-  restrict access: true

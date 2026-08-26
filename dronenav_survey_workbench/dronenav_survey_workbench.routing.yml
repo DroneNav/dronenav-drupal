@@ -20,7 +20,8 @@ dronenav_survey_workbench.sync_overlays:
     _controller: '\Drupal\dronenav_survey_workbench\Controller\OverlaySyncController::sync'
     _title: 'Sync Overlay Records'
   requirements:
-    _permission: 'sync dronenav survey overlays'
+    _permission: 'sync dronenav overlay surveys'
+
 
 dronenav_survey_workbench.react_map_test:
   path: '/survey-workbench/react-map-test'

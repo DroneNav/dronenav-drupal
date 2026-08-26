@@ -478,11 +478,11 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
 
       /*
        * Notification failure must not undo a successful submission.
-       */
+       *
        \Drupal::logger('dronenav_flight_plan')->notice('Before mail()');
       $this->sendFlightPlanAcceptedEmail($node);
        \Drupal::logger('dronenav_flight_plan')->notice('After mail()');
-
+       */
       $this->messenger()->addStatus(
         $this->t('Flight Plan submitted successfully.')
       );
