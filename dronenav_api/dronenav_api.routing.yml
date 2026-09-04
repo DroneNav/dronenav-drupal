@@ -1,3 +1,11 @@
+dronenav_api.tfr_flight_plan_conflicts:
+  path: '/dronenav-api/tfrs/flight-plan-conflicts'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\TfrGatewayController::checkFlightPlanConflicts'
+  requirements:
+    _permission: 'access dronenav api gateway'
+  methods: [POST]
+
 dronenav_api.gateway.sites:
   path: '/api-gateway/sites'
   defaults:

@@ -488,10 +488,71 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
       );
     }
     else {
-      $this->messenger()->addError(
-        $response['message']
-          ?? $this->t('Flight Plan submission failed.')
-      );
+      $tfrs = [];
+
+      foreach ($response['errors'] ?? [] as $error) {
+        if (($error['code'] ?? '') !== 'tfr_conflict') {
+          continue;
+        }
+
+        foreach ($error['tfr_conflicts'] ?? [] as $conflict) {
+          foreach ($conflict['tfrs'] ?? [] as $tfr) {
+            $notam_id = $tfr['notam_id'] ?? NULL;
+
+            if ($notam_id) {
+              $tfrs[$notam_id] = $tfr;
+            }
+          }
+        }
+      }
+
+      if ($tfrs) {
+        foreach ($tfrs as $tfr) {
+          $title = $tfr['title']
+            ?? 'FAA Temporary Flight Restriction';
+
+          $notam_id = $tfr['notam_id']
+            ?? '';
+
+          $begins_at = $tfr['begins_at']
+            ?? '';
+
+          $ends_at = $tfr['ends_at']
+            ?? '';
+
+          $faa_text = $tfr['faa_text']
+            ?? '';
+
+          $faa_text = \Drupal\Component\Utility\Xss::filter(
+            $faa_text,
+            [
+              'p',
+              'strong',
+              'br',
+              'a',
+            ]
+          );
+
+          $this->messenger()->addError(
+            \Drupal\Core\Render\Markup::create(
+              sprintf(
+                '%s (%s) prevents this Flight Plan from being submitted. Effective %s through %s. %s',
+                $title,
+                $notam_id,
+                $begins_at,
+                $ends_at,
+                $faa_text
+              )
+            )
+          );
+        }
+      }
+      else {
+        $this->messenger()->addError(
+          $response['message']
+            ?? $this->t('Flight Plan submission failed.')
+        );
+      }
     }
 
     return $this->redirect('dronenav_flight_plan.list');

@@ -813,5 +813,25 @@ final class DroneNavApiGatewayService {
   }
 
 
+  /**
+   * Checks a scheduled Flight Plan for applicable FAA TFR conflicts.
+   */
+  public function checkFlightPlanTfrConflicts(
+    array $flight_plan
+  ): array {
+
+    return $this->request(
+      'POST',
+      '/api/tfrs/flight-plan-conflicts',
+      [
+        'json' => $flight_plan,
+      ]
+    );
+  }
+
+
+
+
+
 }
 

@@ -15,135 +15,224 @@ class FlightPlanSubmissionService {
     $this->httpClient = $http_client;
   }
 
-  public function submit(Node $flight_plan): array {
+  public function buildPayload(Node $flight_plan): array {
 
-    try {
-      $authority = $this->getRequiredReferencedEntity(
-        $flight_plan,
-        'field_authority'
-      );
+    $authority = $this->getRequiredReferencedEntity(
+      $flight_plan,
+      'field_authority'
+    );
 
-      $aviator = $this->getRequiredReferencedEntity(
-        $flight_plan,
-        'field_aviator'
-      );
+    $aviator = $this->getRequiredReferencedEntity(
+      $flight_plan,
+      'field_aviator'
+    );
 
-      $aircraft = $this->getRequiredReferencedEntity(
-        $flight_plan,
-        'field_aircraft'
-      );
+    $aircraft = $this->getRequiredReferencedEntity(
+      $flight_plan,
+      'field_aircraft'
+    );
 
-      $origin_site = $this->getRequiredReferencedEntity(
-        $flight_plan,
-        'field_origin_site'
-      );
+    $origin_site = $this->getRequiredReferencedEntity(
+      $flight_plan,
+      'field_origin_site'
+    );
 
-      $destination_site = $this->getRequiredReferencedEntity(
-        $flight_plan,
-        'field_destination_site'
-      );
+    $destination_site = $this->getRequiredReferencedEntity(
+      $flight_plan,
+      'field_destination_site'
+    );
 
-      $departure_droneport = $this->getOptionalReferencedEntity(
-        $flight_plan,
-        'field_departure_droneport'
-      );
+    $departure_droneport = $this->getOptionalReferencedEntity(
+      $flight_plan,
+      'field_departure_droneport'
+    );
 
-      $arrival_droneport = $this->getOptionalReferencedEntity(
-        $flight_plan,
-        'field_arrival_droneport'
-      );
+    $arrival_droneport = $this->getOptionalReferencedEntity(
+      $flight_plan,
+      'field_arrival_droneport'
+    );
 
-      $flight_path_ids = [];
+    $flight_path_ids = [];
 
-      if (
-        $flight_plan->hasField('field_flight_path') &&
-        !$flight_plan->get('field_flight_path')->isEmpty()
+    if (
+      $flight_plan->hasField('field_flight_path') &&
+      !$flight_plan->get('field_flight_path')->isEmpty()
+    ) {
+      foreach (
+        $flight_plan->get('field_flight_path')->referencedEntities()
+        as $route
       ) {
-        foreach ($flight_plan->get('field_flight_path')->referencedEntities() as $route) {
-          $flight_path_ids[] = $this->getRequiredFieldValue(
-            $route,
-            'field_overlay_uuid'
-          );
-        }
+        $flight_path_ids[] = $this->getRequiredFieldValue(
+          $route,
+          'field_overlay_uuid'
+        );
       }
+    }
 
-      $flight_class = $this->getRequiredReferencedEntity(
-        $flight_plan,
-        'field_flight_class'
-      );
+    $flight_class = $this->getRequiredReferencedEntity(
+      $flight_plan,
+      'field_flight_class'
+    );
 
-      $requested_departure_datetime = $this->buildRequestedDepartureDatetime(
+    $requested_departure_datetime =
+      $this->buildRequestedDepartureDatetime(
         $flight_plan,
         $origin_site,
         $departure_droneport
       );
 
-      $payload = [
-        'flight_plan_id' => (string) $flight_plan->uuid(),
-        'flight_plan_title' => $flight_plan->label(),
-        'submitted_by' => \Drupal::currentUser()->getAccountName(),
+    return [
+      'flight_plan_id' => (string) $flight_plan->uuid(),
+      'flight_plan_title' => $flight_plan->label(),
+      'submitted_by' => \Drupal::currentUser()->getAccountName(),
 
-        'authority_id' => $this->getRequiredFieldValue(
-          $authority,
-          'field_authority_id'
-        ),
+      'authority_id' => $this->getRequiredFieldValue(
+        $authority,
+        'field_authority_id'
+      ),
 
-        'aviator_id' => $this->getRequiredFieldValue(
-          $aviator,
-          'field_aviator_id'
-        ),
+      'aviator_id' => $this->getRequiredFieldValue(
+        $aviator,
+        'field_aviator_id'
+      ),
 
-        'aircraft_id' => $this->getRequiredFieldValue(
-          $aircraft,
-          'field_aircraft_id'
-        ),
+      'aircraft_id' => $this->getRequiredFieldValue(
+        $aircraft,
+        'field_aircraft_id'
+      ),
 
-        'flight_class' => $flight_class->label(),
+      'flight_class' => $flight_class->label(),
 
-        'origin_site_id' => $this->getRequiredFieldValue(
-          $origin_site,
+      'origin_site_id' => $this->getRequiredFieldValue(
+        $origin_site,
+        'field_overlay_uuid'
+      ),
+
+      'destination_site_id' => $this->getRequiredFieldValue(
+        $destination_site,
+        'field_overlay_uuid'
+      ),
+
+      'departure_droneport_id' => $departure_droneport
+        ? $this->getRequiredFieldValue(
+          $departure_droneport,
           'field_overlay_uuid'
-        ),
+        )
+        : NULL,
 
-        'destination_site_id' => $this->getRequiredFieldValue(
-          $destination_site,
+      'arrival_droneport_id' => $arrival_droneport
+        ? $this->getRequiredFieldValue(
+          $arrival_droneport,
           'field_overlay_uuid'
-        ),
+        )
+        : NULL,
 
-        'departure_droneport_id' => $departure_droneport
-          ? $this->getRequiredFieldValue(
-            $departure_droneport,
-            'field_overlay_uuid'
-          )
-          : NULL,
+      'flight_path_ids' => $flight_path_ids,
 
-        'arrival_droneport_id' => $arrival_droneport
-          ? $this->getRequiredFieldValue(
-            $arrival_droneport,
-            'field_overlay_uuid'
-          )
-          : NULL,
+      'requested_departure_datetime' =>
+        $requested_departure_datetime,
+    ];
+  }
 
-        'flight_path_ids' => $flight_path_ids,
+  public function checkTfrConflicts(Node $flight_plan): array {
 
-        'requested_departure_datetime' => $requested_departure_datetime,
+    try {
+      $payload = $this->buildPayload(
+        $flight_plan
+      );
+
+      if (
+        empty($payload['requested_departure_datetime'])
+      ) {
+        return [
+          'tfr_conflicts' => [],
+        ];
+      }
+
+      $response = $this->httpClient->post(
+        self::API_BASE . '/tfrs/flight-plan-conflicts',
+        [
+          'json' => $payload,
+          'timeout' => 15,
+          'http_errors' => FALSE,
+        ]
+      );
+
+      $data = json_decode(
+        $response->getBody()->getContents(),
+        TRUE
+      );
+
+      if (!is_array($data)) {
+        throw new \RuntimeException(
+          'The TFR API returned an invalid response.'
+        );
+      }
+
+      if ($response->getStatusCode() >= 400) {
+        throw new \RuntimeException(
+          $data['error']
+            ?? 'The TFR conflict check failed.'
+        );
+      }
+
+      return $data;
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('dronenav_flight_plan')->error(
+        'Flight Plan TFR check failed: @message',
+        ['@message' => $e->getMessage()]
+      );
+
+      return [
+        'tfr_conflicts' => [],
+        'error' => $e->getMessage(),
       ];
+    }
+
+  }
+
+  public function submit(Node $flight_plan): array {
+
+    try {
+
+      $payload = $this->buildPayload(
+        $flight_plan
+      );
 
       $response = $this->httpClient->post(
         self::API_BASE . '/flight-executions',
         [
           'json' => $payload,
           'timeout' => 15,
+          'http_errors' => FALSE,
         ]
       );
 
-      return json_decode(
+      $data = json_decode(
         $response->getBody()->getContents(),
         TRUE
-      ) ?? [
-        'status' => 'error',
-        'message' => 'The Flight Execution API returned an invalid response.',
-      ];
+      );
+
+      if (!is_array($data)) {
+        return [
+          'status' => 'error',
+          'message' => 'The Flight Execution API returned an invalid response.',
+        ];
+      }
+
+      if ($response->getStatusCode() >= 400) {
+        return [
+          'status' => 'error',
+          'message' => $data['message']
+            ?? $data['errors'][0]['message']
+            ?? 'The Flight Execution API rejected the submission.',
+          'errors' => $data['errors'] ?? [],
+        ];
+      }
+
+      return $data;
+
     }
     catch (\Exception $e) {
       \Drupal::logger('dronenav_flight_plan')->error(

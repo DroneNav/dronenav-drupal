@@ -7,6 +7,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\Entity\Node;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\ReplaceCommand;
+use Drupal\Core\Render\Markup;
 
 
 /**
@@ -334,7 +335,123 @@ function dronenav_flight_plan_form_node_working_flight_plan_edit_form_alter(
     $form['field_flight_path']['widget']['#options'] =
       $route_options;
   }
+
+  if (isset($form['actions']['submit'])) {
+    $form['actions']['submit']['#submit'][] =
+      'dronenav_flight_plan_tfr_draft_submit';
+  }
 }
+
+function dronenav_flight_plan_tfr_draft_submit(
+  array &$form,
+  FormStateInterface $form_state
+) {
+
+  $form_object = $form_state->getFormObject();
+
+  if (!$form_object) {
+    return;
+  }
+
+  $flight_plan = $form_object->getEntity();
+
+  if (
+    !$flight_plan instanceof Node ||
+    $flight_plan->bundle() !== 'working_flight_plan'
+  ) {
+    return;
+  }
+
+  $service = \Drupal::service(
+    'dronenav_flight_plan.submission_service'
+  );
+
+  $result = $service->checkTfrConflicts(
+    $flight_plan
+  );
+
+  $conflicts = $result['tfr_conflicts'] ?? [];
+
+  if (!$conflicts) {
+    return;
+  }
+
+  $tfrs = [];
+
+  foreach ($conflicts as $conflict) {
+    foreach ($conflict['tfrs'] ?? [] as $tfr) {
+      $notam_id = $tfr['notam_id'] ?? NULL;
+
+      if ($notam_id) {
+        $tfrs[$notam_id] = $tfr;
+      }
+    }
+  }
+
+  if (!$tfrs) {
+    return;
+  }
+
+  \Drupal::request()->query->remove('destination');
+
+  $form_state->setRedirect(
+    'entity.node.edit_form',
+    [
+      'node' => $flight_plan->id(),
+    ],
+    [
+      'query' => [
+        'destination' => \Drupal\Core\Url::fromRoute(
+          'dronenav_flight_plan.list'
+        )->toString(),
+      ],
+    ]
+  );
+
+  foreach ($tfrs as $tfr) {
+    $title = $tfr['title']
+      ?? 'FAA Temporary Flight Restriction';
+
+    $notam_id = $tfr['notam_id']
+      ?? '';
+
+    $begins_at = $tfr['begins_at']
+      ?? '';
+
+    $ends_at = $tfr['ends_at']
+      ?? '';
+
+    $faa_text = $tfr['faa_text']
+      ?? '';
+
+    $faa_text = \Drupal\Component\Utility\Xss::filter(
+      $faa_text,
+      [
+        'p',
+        'strong',
+        'br',
+        'a',
+      ]
+    );
+
+    \Drupal::messenger()->addWarning(
+      Markup::create(
+        sprintf(
+          '%s (%s) affects this Flight Plan. Effective %s through %s. %s',
+          $title,
+          $notam_id,
+          $begins_at,
+          $ends_at,
+          $faa_text
+        )
+      )
+    );
+
+  }
+
+
+}
+
 
 /**
  * AJAX callback for Authority changes.
