@@ -32,6 +32,7 @@ services:
       - '@entity_type.manager'
       - '@current_user'
       - '@http_client'
+      - '@dronenav_survey_workbench.overlay_activation'
 
   dronenav_survey_workbench.overlay_activation:
     class: Drupal\dronenav_survey_workbench\Service\OverlayActivationService

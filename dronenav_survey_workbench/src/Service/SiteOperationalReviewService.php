@@ -2,6 +2,7 @@
 
 namespace Drupal\dronenav_survey_workbench\Service;
 
+use Drupal\dronenav_survey_workbench\Service\OverlayActivationService;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\node\Entity\Node;
@@ -14,15 +15,18 @@ class SiteOperationalReviewService {
   protected EntityTypeManagerInterface $entityTypeManager;
   protected AccountProxyInterface $currentUser;
   protected ClientInterface $httpClient;
+  protected OverlayActivationService $overlayActivationService;
 
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
     AccountProxyInterface $current_user,
-    ClientInterface $http_client
+    ClientInterface $http_client,
+    OverlayActivationService $overlay_activation_service
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->currentUser = $current_user;
     $this->httpClient = $http_client;
+    $this->overlayActivationService = $overlay_activation_service;
   }
 
   public function approvePackage(Node $review): void {
@@ -31,6 +35,13 @@ class SiteOperationalReviewService {
     $site_uuid = $this->getOverlayUuid($site);
 
     $this->approveSitePackage($site_uuid);
+
+    if (
+      $review->hasField('field_operational_status') &&
+      (bool) $review->get('field_operational_status')->value
+    ) {
+      $this->overlayActivationService->activateSite($review);
+    }
 
     $this->setReviewStatus($review, 'Approved');
     $this->setDecisionFields($review);

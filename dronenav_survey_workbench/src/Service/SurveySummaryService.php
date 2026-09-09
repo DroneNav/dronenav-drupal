@@ -63,17 +63,7 @@ class SurveySummaryService {
       return FALSE;
     }
 
-    $site_overlay = $this->findSiteOverlay($summary);
-
-    if (!$site_overlay) {
-      return FALSE;
-    }
-
-    $status = $this->getSiteSurveySummaryStatus(
-      $site_overlay->get('field_overlay_uuid')->value
-    );
-
-    return $status === 'surveyed' || $status === 'approved';
+    return $summary->isPublished();
   }
 
   public function submitSurveySummary(Node $summary): void {
