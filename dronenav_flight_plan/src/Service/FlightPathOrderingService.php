@@ -91,6 +91,37 @@ class FlightPathOrderingService {
       return $this->failure($errors);
     }
 
+    try {
+      $departure_droneport_details =
+        $this->loadDronePortDetails($departure_droneport_id);
+
+      $arrival_droneport_details =
+        $this->loadDronePortDetails($arrival_droneport_id);
+    }
+    catch (\RuntimeException $e) {
+      return $this->failure([$e->getMessage()]);
+    }
+
+    $departure_route_node_id =
+      $departure_droneport_details['route_node_id'] ?? NULL;
+
+    $arrival_route_node_id =
+      $arrival_droneport_details['route_node_id'] ?? NULL;
+
+    if (!$departure_route_node_id) {
+      $errors[] =
+        'The Departure DronePort does not have an associated Route Node.';
+    }
+
+    if (!$arrival_route_node_id) {
+      $errors[] =
+        'The Arrival DronePort does not have an associated Route Node.';
+    }
+
+    if (!empty($errors)) {
+      return $this->failure($errors);
+    }
+
     /*
      * Build an internal collection containing:
      *
@@ -123,10 +154,10 @@ class FlightPathOrderingService {
       $routes[$route_id] = [
         'node' => $route_node,
         'route_id' => $route_id,
-        'origin_droneport_id' =>
-          $route_details['origin_droneport_id'] ?? NULL,
-        'destination_droneport_id' =>
-          $route_details['destination_droneport_id'] ?? NULL,
+        'origin_route_node_id' =>
+          $route_details['origin_route_node_id'] ?? NULL,
+        'destination_route_node_id' =>
+          $route_details['destination_route_node_id'] ?? NULL,
         'direction' =>
           isset($route_details['direction'])
             ? (int) $route_details['direction']
@@ -140,11 +171,11 @@ class FlightPathOrderingService {
 
     foreach ($routes as $route) {
       if (
-        empty($route['origin_droneport_id']) ||
-        empty($route['destination_droneport_id'])
+        empty($route['origin_route_node_id']) ||
+        empty($route['destination_route_node_id'])
       ) {
         $errors[] = sprintf(
-          'Route "%s" is missing an origin or destination DronePort.',
+          'Route "%s" is missing an origin or destination Route Node.',
           $route['node']->label()
         );
       }
@@ -172,25 +203,25 @@ class FlightPathOrderingService {
     }
 
     $unused_routes = $routes;
-    $current_droneport_id = $departure_droneport_id;
+    $current_route_node_id = $departure_route_node_id;
 
     /*
-     * At each DronePort, exactly one unused selected Route must provide a
-     * legal traversal away from the current DronePort.
+     * At each Route Node, exactly one unused selected Route must provide a
+     * legal traversal away from the current Route Node.
      */
     while (!empty($unused_routes)) {
       $candidates = [];
 
       foreach ($unused_routes as $route_id => $route) {
-        $next_droneport_id = $this->getNextDronePortId(
+        $next_route_node_id = $this->getNextRouteNodeId(
           $route,
-          $current_droneport_id
+          $current_route_node_id
         );
 
-        if ($next_droneport_id !== NULL) {
+        if ($next_route_node_id !== NULL) {
           $candidates[$route_id] = [
             'route' => $route,
-            'next_droneport_id' => $next_droneport_id,
+            'next_route_node_id' => $next_route_node_id,
           ];
         }
       }
@@ -213,8 +244,8 @@ class FlightPathOrderingService {
         );
 
         $errors[] = sprintf(
-          'The Flight Path is ambiguous at DronePort %s. More than one Route may be traversed next: %s.',
-          $current_droneport_id,
+          'The Flight Path is ambiguous at Route Node %s. More than one Route may be traversed next: %s.',
+          $current_route_node_id,
           implode(', ', $route_names)
         );
 
@@ -227,7 +258,7 @@ class FlightPathOrderingService {
       $ordered_routes[] = $candidate['route']['node'];
       $ordered_route_ids[] = $route_id;
 
-      $current_droneport_id = $candidate['next_droneport_id'];
+      $current_route_node_id = $candidate['next_route_node_id'];
 
       unset($unused_routes[$route_id]);
 
@@ -236,7 +267,7 @@ class FlightPathOrderingService {
        * Routes means the Aviator selected Routes outside the intended chain.
        */
       if (
-        $current_droneport_id === $arrival_droneport_id &&
+        $current_route_node_id === $arrival_route_node_id &&
         !empty($unused_routes)
       ) {
         $errors[] =
@@ -246,7 +277,7 @@ class FlightPathOrderingService {
       }
     }
 
-    if ($current_droneport_id !== $arrival_droneport_id) {
+    if ($current_route_node_id !== $arrival_route_node_id) {
       $errors[] = sprintf(
           'The selected Flight Path does not terminate at Arrival DronePort "%s".',
           $arrival_droneport->label() );
@@ -261,36 +292,36 @@ class FlightPathOrderingService {
   }
 
   /**
-   * Returns the next DronePort when the Route is legally traversable.
+   * Returns the next Route Node when the Route is legally traversable.
    */
-  protected function getNextDronePortId(
+  protected function getNextRouteNodeId(
     array $route,
-    string $current_droneport_id
+    string $current_route_node_id
   ): ?string {
-    $origin_id = $route['origin_droneport_id'];
-    $destination_id = $route['destination_droneport_id'];
+    $origin_id = $route['origin_route_node_id'];
+    $destination_id = $route['destination_route_node_id'];
     $direction = $route['direction'];
 
     if (
       $direction === self::DIRECTION_FORWARD &&
-      $current_droneport_id === $origin_id
+      $current_route_node_id === $origin_id
     ) {
       return $destination_id;
     }
 
     if (
       $direction === self::DIRECTION_REVERSE &&
-      $current_droneport_id === $destination_id
+      $current_route_node_id === $destination_id
     ) {
       return $origin_id;
     }
 
     if ($direction === self::DIRECTION_BIDIRECTIONAL) {
-      if ($current_droneport_id === $origin_id) {
+      if ($current_route_node_id === $origin_id) {
         return $destination_id;
       }
 
-      if ($current_droneport_id === $destination_id) {
+      if ($current_route_node_id === $destination_id) {
         return $origin_id;
       }
     }
@@ -357,6 +388,62 @@ class FlightPathOrderingService {
         sprintf(
           'Unable to retrieve Route %s: %s',
           $route_id,
+          $e->getMessage()
+        )
+      );
+    }
+  }
+
+  /**
+   * Retrieves current DronePort details from the operational API.
+   */
+  protected function loadDronePortDetails(string $droneport_id): array {
+    try {
+      $response = $this->httpClient->get(
+        self::API_BASE . '/droneports/' . rawurlencode($droneport_id),
+        [
+          'timeout' => 15,
+        ]
+      );
+
+      $data = json_decode(
+        $response->getBody()->getContents(),
+        TRUE
+      );
+
+      if (!is_array($data)) {
+        throw new \RuntimeException(
+          sprintf(
+            'The API returned an invalid response for DronePort %s.',
+            $droneport_id
+          )
+        );
+      }
+
+      $droneport = $data['droneport'] ?? $data;
+
+      if (
+        empty($droneport['droneport_id']) ||
+        $droneport['droneport_id'] !== $droneport_id
+      ) {
+        throw new \RuntimeException(
+          sprintf(
+            'The API did not return the requested DronePort %s.',
+            $droneport_id
+          )
+        );
+      }
+
+      return $droneport;
+    }
+    catch (\RuntimeException $e) {
+      throw $e;
+    }
+    catch (\Exception $e) {
+      throw new \RuntimeException(
+        sprintf(
+          'Unable to retrieve DronePort %s: %s',
+          $droneport_id,
           $e->getMessage()
         )
       );
