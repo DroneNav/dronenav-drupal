@@ -682,6 +682,11 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
         'data-flight-execution-id' => $flight_execution_id,
         'style' => 'height: 700px; width: 100%;',
       ],
+
+      '#cache' => [
+        'tags' => $flight_plan->getCacheTags(),
+      ],
+
       '#attached' => [
         'library' => [
           'dronenav_survey_workbench/react_map',
