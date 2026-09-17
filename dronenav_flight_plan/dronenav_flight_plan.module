@@ -41,6 +41,25 @@ function dronenav_flight_plan_form_node_working_flight_plan_edit_form_alter(
   $form_id
 ) {
 
+  $flight_plan = $form_state
+    ->getFormObject()
+    ->getEntity();
+
+  $is_return_trip =
+    $flight_plan->hasField('field_round_trip_parent') &&
+    !$flight_plan->get('field_round_trip_parent')->isEmpty();
+
+  if (!$is_return_trip) {
+    $form['dronenav_round_trip'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Round Trip'),
+      '#description' => t(
+        'Create a separate draft Flight Plan for the return trip.'
+      ),
+      '#weight' => 15,
+    ];
+  }
+
   $form['field_origin_site']['#prefix'] =
     '<div id="dronenav-origin-site-wrapper">';
   $form['field_origin_site']['#suffix'] = '</div>';
@@ -339,7 +358,91 @@ function dronenav_flight_plan_form_node_working_flight_plan_edit_form_alter(
   if (isset($form['actions']['submit'])) {
     $form['actions']['submit']['#submit'][] =
       'dronenav_flight_plan_tfr_draft_submit';
+
+    $form['actions']['submit']['#submit'][] =
+      'dronenav_flight_plan_round_trip_submit';
   }
+}
+
+/**
+ * Creates a return Flight Plan draft when Round Trip is selected.
+ */
+function dronenav_flight_plan_round_trip_submit(
+  array &$form,
+  FormStateInterface $form_state
+) {
+
+  if (!$form_state->getValue('dronenav_round_trip')) {
+    return;
+  }
+
+  $form_object = $form_state->getFormObject();
+
+  if (!$form_object) {
+    return;
+  }
+
+  $outbound = $form_object->getEntity();
+
+  if (
+    !$outbound instanceof Node ||
+    $outbound->bundle() !== 'working_flight_plan'
+  ) {
+    return;
+  }
+
+  $return = $outbound->createDuplicate();
+
+  $return->set(
+    'field_round_trip_parent',
+    [
+      'target_id' => $outbound->id(),
+    ]
+  );
+
+  /*
+   * Reverse the endpoints for the return Flight Plan.
+   */
+  $return->set(
+    'field_origin_site',
+    $outbound->get('field_destination_site')->getValue()
+  );
+
+  $return->set(
+    'field_destination_site',
+    $outbound->get('field_origin_site')->getValue()
+  );
+
+  $return->set(
+    'field_departure_droneport',
+    $outbound->get('field_arrival_droneport')->getValue()
+  );
+
+  $return->set(
+    'field_arrival_droneport',
+    $outbound->get('field_departure_droneport')->getValue()
+  );
+
+  /*
+   * The return Flight Plan requires its own departure datetime
+   * before it may be submitted.
+   */
+  $return->set('field_departure_datetime', []);
+
+  /*
+   * A draft return Flight Plan has no Flight Execution Record.
+   */
+  $return->set('field_flight_execution_id', []);
+
+  $return->setTitle(
+    $outbound->label() . ' - Return'
+  );
+
+  $return->save();
+
+  \Drupal::messenger()->addStatus(
+    t('Return Flight Plan draft created.')
+  );
 }
 
 function dronenav_flight_plan_tfr_draft_submit(
