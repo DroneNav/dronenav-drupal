@@ -213,36 +213,44 @@ class FlightPlanValidator {
      * - arrival DronePort
      * - at least one Route
      */
-    if ($has_departure_datetime) {
-      if (!$departure_droneport) {
-        $errors[] =
-          'A Flight Plan with a Departure Date and Time requires a Departure DronePort.';
-      }
 
-      if (!$arrival_droneport) {
-        $errors[] =
-          'A Flight Plan with a Departure Date and Time requires an Arrival DronePort.';
-      }
+    $has_flights = (
+      $flight_plan->hasField('field_flights') &&
+      !$flight_plan->get('field_flights')->isEmpty()
+    );
 
-      if (!$has_flight_path) {
-        $errors[] =
-          'A Flight Plan with a Departure Date and Time requires at least one Route in the Flight Path.';
-      }
-    }
-    else {
-      if ($departure_droneport) {
-        $errors[] =
-          'A Flight Plan without a Departure Date and Time cannot include a Departure DronePort.';
-      }
+    if (!$has_flights) {
+      if ($has_departure_datetime) {
+        if (!$departure_droneport) {
+          $errors[] =
+            'A Flight Plan with a Departure Date and Time requires a Departure DronePort.';
+        }
 
-      if ($arrival_droneport) {
-        $errors[] =
-          'A Flight Plan without a Departure Date and Time cannot include an Arrival DronePort.';
-      }
+        if (!$arrival_droneport) {
+          $errors[] =
+            'A Flight Plan with a Departure Date and Time requires an Arrival DronePort.';
+        }
 
-      if ($has_flight_path) {
-        $errors[] =
-          'A Flight Plan without a Departure Date and Time cannot include Routes in the Flight Path.';
+        if (!$has_flight_path) {
+          $errors[] =
+            'A Flight Plan with a Departure Date and Time requires at least one Route in the Flight Path.';
+        }
+      }
+      else {
+        if ($departure_droneport) {
+          $errors[] =
+            'A Flight Plan without a Departure Date and Time cannot include a Departure DronePort.';
+        }
+
+        if ($arrival_droneport) {
+          $errors[] =
+            'A Flight Plan without a Departure Date and Time cannot include an Arrival DronePort.';
+        }
+
+        if ($has_flight_path) {
+          $errors[] =
+            'A Flight Plan without a Departure Date and Time cannot include Routes in the Flight Path.';
+        }
       }
     }
 

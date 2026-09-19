@@ -15,10 +15,42 @@ dronenav_flight_plan.add:
   requirements:
     _permission: 'file dronenav flight plans'
 
+dronenav_flight_plan.add_via:
+  path: '/flight-plan/add-via'
+  defaults:
+    _form: '\Drupal\dronenav_flight_plan\Form\FlightPlanViaForm'
+    _title: 'File Via Flight Plan'
+  requirements:
+    _permission: 'file dronenav flight plans'
+
+dronenav_flight_plan.via:
+  path: '/flight-plan/{node}/via'
+  defaults:
+    _form: '\Drupal\dronenav_flight_plan\Form\FlightPlanViaForm'
+    _title: 'Via Flight Plan'
+  requirements:
+    _permission: 'manage own dronenav flight plans'
+  options:
+    parameters:
+      node:
+        type: entity:node
+
 dronenav_flight_plan.edit:
   path: '/flight-plan/{node}/edit'
   defaults:
     _entity_form: 'node.edit'
+    _title: 'Edit VIA Flight Plan'
+  requirements:
+    _permission: 'manage own dronenav flight plans'
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+dronenav_flight_plan.edit_via:
+  path: '/flight-plan/{node}/edit-via'
+  defaults:
+    _entity_form: 'node.edit-via'
     _title: 'Edit Flight Plan'
   requirements:
     _permission: 'manage own dronenav flight plans'

@@ -1,4 +1,7 @@
 services:
+  dronenav_flight_plan.option_service:
+    class: Drupal\dronenav_flight_plan\Service\FlightPlanOptionService
+
   dronenav_flight_plan.submission_service:
     class: Drupal\dronenav_flight_plan\Service\FlightPlanSubmissionService
     arguments:

@@ -167,46 +167,12 @@ function dronenav_flight_plan_form_node_working_flight_plan_edit_form_alter(
   }
 
   /*
-   * Resolve Authority node to its external Authority UUID.
-   */
-  $authority_id = NULL;
-
-  if ($authority_nid) {
-    $authority_node = Node::load($authority_nid);
-
-    if (
-      $authority_node &&
-      $authority_node->hasField('field_authority_id') &&
-      !$authority_node->get('field_authority_id')->isEmpty()
-    ) {
-      $authority_id = $authority_node
-        ->get('field_authority_id')
-        ->value;
-    }
-  }
-
-  /*
    * Authority -> Origin Site and Destination Site.
    */
-  $site_options = [];
+  $site_options = \Drupal::service(
+    'dronenav_flight_plan.option_service'
+  )->getSiteOptions($authority_nid);
 
-  if ($authority_id) {
-    $site_nids = \Drupal::entityQuery('node')
-      ->accessCheck(TRUE)
-      ->condition('type', 'site')
-      ->condition('status', 1)
-      ->condition('field_authority_id', $authority_id)
-      ->sort('title')
-      ->execute();
-
-    if ($site_nids) {
-      $sites = Node::loadMultiple($site_nids);
-
-      foreach ($sites as $site) {
-        $site_options[$site->id()] = $site->label();
-      }
-    }
-  }
 
   if (isset($form['field_origin_site']['widget']['#options'])) {
     $form['field_origin_site']['widget']['#options'] = $site_options;
@@ -219,45 +185,9 @@ function dronenav_flight_plan_form_node_working_flight_plan_edit_form_alter(
   /*
    * Origin Site -> Departure DronePort.
    */
-  $departure_droneport_options = [
-    '_none' => t('- None -'),
-  ];
-
-  if ($origin_site_nid) {
-    $origin_site = Node::load($origin_site_nid);
-    $origin_site_uuid = NULL;
-
-    if (
-      $origin_site &&
-      $origin_site->hasField('field_overlay_uuid') &&
-      !$origin_site->get('field_overlay_uuid')->isEmpty()
-    ) {
-      $origin_site_uuid = $origin_site
-        ->get('field_overlay_uuid')
-        ->value;
-    }
-
-    if ($origin_site_uuid) {
-      $departure_droneport_nids = \Drupal::entityQuery('node')
-        ->accessCheck(TRUE)
-        ->condition('type', 'droneport')
-        ->condition('status', 1)
-        ->condition('field_parent_site_id', $origin_site_uuid)
-        ->sort('title')
-        ->execute();
-
-      if ($departure_droneport_nids) {
-        $departure_droneports = Node::loadMultiple(
-          $departure_droneport_nids
-        );
-
-        foreach ($departure_droneports as $droneport) {
-          $departure_droneport_options[$droneport->id()] =
-            $droneport->label();
-        }
-      }
-    }
-  }
+  $departure_droneport_options = \Drupal::service(
+    'dronenav_flight_plan.option_service'
+  )->getDronePortOptions($origin_site_nid);
 
   if (
     isset(
@@ -271,48 +201,9 @@ function dronenav_flight_plan_form_node_working_flight_plan_edit_form_alter(
   /*
    * Destination Site -> Arrival DronePort.
    */
-  $arrival_droneport_options = [
-    '_none' => t('- None -'),
-  ];
-
-  if ($destination_site_nid) {
-    $destination_site = Node::load($destination_site_nid);
-    $destination_site_uuid = NULL;
-
-    if (
-      $destination_site &&
-      $destination_site->hasField('field_overlay_uuid') &&
-      !$destination_site->get('field_overlay_uuid')->isEmpty()
-    ) {
-      $destination_site_uuid = $destination_site
-        ->get('field_overlay_uuid')
-        ->value;
-    }
-
-    if ($destination_site_uuid) {
-      $arrival_droneport_nids = \Drupal::entityQuery('node')
-        ->accessCheck(TRUE)
-        ->condition('type', 'droneport')
-        ->condition('status', 1)
-        ->condition(
-          'field_parent_site_id',
-          $destination_site_uuid
-        )
-        ->sort('title')
-        ->execute();
-
-      if ($arrival_droneport_nids) {
-        $arrival_droneports = Node::loadMultiple(
-          $arrival_droneport_nids
-        );
-
-        foreach ($arrival_droneports as $droneport) {
-          $arrival_droneport_options[$droneport->id()] =
-            $droneport->label();
-        }
-      }
-    }
-  }
+  $arrival_droneport_options = \Drupal::service(
+    'dronenav_flight_plan.option_service'
+  )->getDronePortOptions($destination_site_nid);
 
   if (
     isset(
@@ -326,29 +217,12 @@ function dronenav_flight_plan_form_node_working_flight_plan_edit_form_alter(
   /*
    * Origin Site + Destination Site -> Flight Path.
    */
-  $route_options = [
-    '_none' => t('- None -'),
-  ];
-
-  if (
-    $origin_site_nid &&
+  $route_options = \Drupal::service(
+    'dronenav_flight_plan.option_service'
+  )->getRouteOptions(
+    $origin_site_nid,
     $destination_site_nid
-  ) {
-    $route_nids = \Drupal::entityQuery('node')
-      ->accessCheck(TRUE)
-      ->condition('type', 'route')
-      ->condition('status', 1)
-      ->execute();
-
-    if ($route_nids) {
-      $routes = Node::loadMultiple($route_nids);
-
-      foreach ($routes as $route) {
-        $route_options[$route->id()] = $route->label();
-      }
-    }
-
-  }
+  );
 
   if (isset($form['field_flight_path']['widget']['#options'])) {
     $form['field_flight_path']['widget']['#options'] =

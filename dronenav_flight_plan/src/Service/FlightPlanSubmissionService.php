@@ -3,6 +3,7 @@
 namespace Drupal\dronenav_flight_plan\Service;
 
 use Drupal\node\Entity\Node;
+use Drupal\paragraphs\Entity\Paragraph;
 use GuzzleHttp\ClientInterface;
 
 class FlightPlanSubmissionService {
@@ -134,49 +135,230 @@ class FlightPlanSubmissionService {
     ];
   }
 
+  public function buildViaPayload(Node $flight_plan): array {
+
+    $flights = $flight_plan
+      ->get('field_flights')
+      ->referencedEntities();
+
+    $payloads = [];
+
+    foreach ($flights as $index => $flight) {
+      $payloads[] = $this->buildFlightPayload(
+        $flight_plan,
+        $flight,
+        $index === 0
+      );
+    }
+
+    return $payloads;
+  }
+
+  protected function buildFlightPayload(
+    Node $flight_plan,
+    Paragraph $flight,
+    bool $include_departure_datetime
+  ): array {
+
+    $authority = $this->getRequiredReferencedEntity(
+      $flight_plan,
+      'field_authority'
+    );
+
+    $aviator = $this->getRequiredReferencedEntity(
+      $flight_plan,
+      'field_aviator'
+    );
+
+    $aircraft = $this->getRequiredReferencedEntity(
+      $flight_plan,
+      'field_aircraft'
+    );
+
+    $flight_class = $this->getRequiredReferencedEntity(
+      $flight_plan,
+      'field_flight_class'
+    );
+
+    $origin_site = $this->getRequiredReferencedEntity(
+      $flight,
+      'field_origin_site'
+    );
+
+    $destination_site = $this->getRequiredReferencedEntity(
+      $flight,
+      'field_destination_site'
+    );
+
+    $departure_droneport = $this->getOptionalReferencedEntity(
+      $flight,
+      'field_departure_droneport'
+    );
+
+    $arrival_droneport = $this->getOptionalReferencedEntity(
+      $flight,
+      'field_arrival_droneport'
+    );
+
+    $flight_path_ids = [];
+
+    foreach (
+      $flight->get('field_flight_path')->referencedEntities()
+      as $route
+    ) {
+      $flight_path_ids[] = $this->getRequiredFieldValue(
+        $route,
+        'field_overlay_uuid'
+      );
+    }
+
+    $requested_departure_datetime =
+      $include_departure_datetime
+        ? $this->buildRequestedDepartureDatetime(
+          $flight_plan,
+          $origin_site,
+          $departure_droneport
+        )
+        : NULL;
+
+    return [
+      'flight_plan_id' => (string) $flight_plan->uuid(),
+      'flight_plan_title' => $flight_plan->label(),
+      'submitted_by' => \Drupal::currentUser()->getAccountName(),
+
+      'authority_id' => $this->getRequiredFieldValue(
+        $authority,
+        'field_authority_id'
+      ),
+
+      'aviator_id' => $this->getRequiredFieldValue(
+        $aviator,
+        'field_aviator_id'
+      ),
+
+      'aircraft_id' => $this->getRequiredFieldValue(
+        $aircraft,
+        'field_aircraft_id'
+      ),
+
+      'flight_class' => $flight_class->label(),
+
+      'origin_site_id' => $this->getRequiredFieldValue(
+        $origin_site,
+        'field_overlay_uuid'
+      ),
+
+      'destination_site_id' => $this->getRequiredFieldValue(
+        $destination_site,
+        'field_overlay_uuid'
+      ),
+
+      'departure_droneport_id' => $departure_droneport
+        ? $this->getRequiredFieldValue(
+          $departure_droneport,
+          'field_overlay_uuid'
+        )
+        : NULL,
+
+      'arrival_droneport_id' => $arrival_droneport
+        ? $this->getRequiredFieldValue(
+          $arrival_droneport,
+          'field_overlay_uuid'
+        )
+        : NULL,
+
+      'flight_path_ids' => $flight_path_ids,
+
+      'requested_departure_datetime' =>
+        $requested_departure_datetime,
+    ];
+  }
+
+
   public function checkTfrConflicts(Node $flight_plan): array {
 
     try {
-      $payload = $this->buildPayload(
-        $flight_plan
+      $is_via = (
+        $flight_plan->hasField('field_flights') &&
+        !$flight_plan->get('field_flights')->isEmpty()
       );
 
-      if (
-        empty($payload['requested_departure_datetime'])
-      ) {
-        return [
-          'tfr_conflicts' => [],
+      if ($is_via) {
+        $payloads = $this->buildViaPayload($flight_plan);
+
+        $root_departure_datetime =
+          $payloads[0]['requested_departure_datetime']
+          ?? NULL;
+
+        if (empty($root_departure_datetime)) {
+          return [
+            'tfr_conflicts' => [],
+          ];
+        }
+      }
+      else {
+        $payloads = [
+          $this->buildPayload($flight_plan),
         ];
+
+        if (
+          empty($payloads[0]['requested_departure_datetime'])
+        ) {
+          return [
+            'tfr_conflicts' => [],
+          ];
+        }
+
+        $root_departure_datetime =
+          $payloads[0]['requested_departure_datetime'];
       }
 
-      $response = $this->httpClient->post(
-        self::API_BASE . '/tfrs/flight-plan-conflicts',
-        [
-          'json' => $payload,
-          'timeout' => 15,
-          'http_errors' => FALSE,
-        ]
-      );
+      $tfr_conflicts = [];
 
-      $data = json_decode(
-        $response->getBody()->getContents(),
-        TRUE
-      );
+      foreach ($payloads as $payload) {
+        /*
+         * All Flights in a VIA Flight Plan are evaluated against TFRs
+         * using the root Flight Plan departure datetime. This does not
+         * alter the FER payload used for actual submission.
+         */
+        $payload['requested_departure_datetime'] =
+          $root_departure_datetime;
 
-      if (!is_array($data)) {
-        throw new \RuntimeException(
-          'The TFR API returned an invalid response.'
+        $response = $this->httpClient->post(
+          self::API_BASE . '/tfrs/flight-plan-conflicts',
+          [
+            'json' => $payload,
+            'timeout' => 15,
+            'http_errors' => FALSE,
+          ]
         );
-      }
 
-      if ($response->getStatusCode() >= 400) {
-        throw new \RuntimeException(
-          $data['error']
-            ?? 'The TFR conflict check failed.'
+        $data = json_decode(
+          $response->getBody()->getContents(),
+          TRUE
         );
+
+        if (!is_array($data)) {
+          throw new \RuntimeException(
+            'The TFR API returned an invalid response.'
+          );
+        }
+
+        if ($response->getStatusCode() >= 400) {
+          throw new \RuntimeException(
+            $data['error']
+              ?? 'The TFR conflict check failed.'
+          );
+        }
+
+        foreach ($data['tfr_conflicts'] ?? [] as $conflict) {
+          $tfr_conflicts[] = $conflict;
+        }
       }
 
-      return $data;
+      return [
+        'tfr_conflicts' => $tfr_conflicts,
+      ];
     }
     catch (\Exception $e) {
       \Drupal::logger('dronenav_flight_plan')->error(
@@ -192,13 +374,14 @@ class FlightPlanSubmissionService {
 
   }
 
+
   public function submit(Node $flight_plan): array {
 
     try {
 
-      $payload = $this->buildPayload(
-        $flight_plan
-      );
+      $payload = $flight_plan->get('field_flights')->isEmpty()
+        ? $this->buildPayload($flight_plan)
+        : $this->buildViaPayload($flight_plan);
 
       $response = $this->httpClient->post(
         self::API_BASE . '/flight-executions',
@@ -252,20 +435,20 @@ class FlightPlanSubmissionService {
    * Returns a required referenced entity.
    */
   protected function getRequiredReferencedEntity(
-    Node $flight_plan,
+    object $source_entity,
     string $field_name
   ): object {
 
     if (
-      !$flight_plan->hasField($field_name) ||
-      $flight_plan->get($field_name)->isEmpty()
+      !$source_entity->hasField($field_name) ||
+      $source_entity->get($field_name)->isEmpty()
     ) {
       throw new \RuntimeException(
         sprintf('Missing required Flight Plan field: %s', $field_name)
       );
     }
 
-    $entity = $flight_plan->get($field_name)->entity;
+    $entity = $source_entity->get($field_name)->entity;
 
     if (!$entity) {
       throw new \RuntimeException(
@@ -280,18 +463,18 @@ class FlightPlanSubmissionService {
    * Returns an optional referenced entity or NULL.
    */
   protected function getOptionalReferencedEntity(
-    Node $flight_plan,
+    object $source_entity,
     string $field_name
   ): ?object {
 
     if (
-      !$flight_plan->hasField($field_name) ||
-      $flight_plan->get($field_name)->isEmpty()
+      !$source_entity->hasField($field_name) ||
+      $source_entity->get($field_name)->isEmpty()
     ) {
       return NULL;
     }
 
-    return $flight_plan->get($field_name)->entity;
+    return $source_entity->get($field_name)->entity;
   }
 
   /**

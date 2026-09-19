@@ -2,8 +2,8 @@
 
 namespace Drupal\dronenav_flight_plan\Service;
 
-use Drupal\node\NodeInterface;
 use GuzzleHttp\ClientInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 
 class FlightPathOrderingService {
 
@@ -30,7 +30,9 @@ class FlightPathOrderingService {
    *     'ordered_route_ids' => string[],
    *   ]
    */
-  public function orderFlightPath(NodeInterface $flight_plan): array {
+  public function orderFlightPath(
+    FieldableEntityInterface $flight_plan
+  ): array {
     $errors = [];
     $ordered_routes = [];
     $ordered_route_ids = [];
@@ -454,7 +456,7 @@ class FlightPathOrderingService {
    * Returns a referenced entity or NULL.
    */
   protected function getReferencedEntity(
-    NodeInterface $node,
+    FieldableEntityInterface $node,
     string $field_name
   ): ?object {
     if (

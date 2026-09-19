@@ -124,10 +124,15 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
         }
         else {
             // Draft/rejected/unpublished: Edit | Delete | Submit.
+
+            $edit_route = $node->get('field_flights')->isEmpty()
+              ? 'entity.node.edit_form'
+              : 'dronenav_flight_plan.via';
+
             $operations[] = Link::fromTextAndUrl(
               $this->t('Edit'),
               Url::fromRoute(
-                'entity.node.edit_form',
+                $edit_route,
                 ['node' => $node->id()],
                 [
                   'query' => [
@@ -243,6 +248,14 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
           'class' => ['button', 'button--primary'],
         ],
       ],
+      'add_via_button' => [
+        '#type' => 'link',
+        '#title' => $this->t('File VIA Flight Plan'),
+        '#url' => Url::fromRoute('dronenav_flight_plan.add_via'),
+        '#attributes' => [
+          'class' => ['button', 'button--primary'],
+        ],
+      ],
       'table' => [
         '#type' => 'table',
         '#header' => $header,
@@ -293,20 +306,19 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
     return $entity ? $entity->label() : '';
   }
 
-  public function add() {
+  /**
+   * Creates a new working Flight Plan with the Aviator defaults.
+   */
+  protected function createWorkingFlightPlan(): ?Node {
 
     $aviator = $this->getCurrentAviator();
 
     if (!$aviator) {
-      $this->messenger()->addError($this->t('No Aviator profile was found.'));
-      return $this->redirect('<front>');
+      return NULL;
     }
 
-    // Read the defaults...
     $authority = $aviator->get('field_authority')->target_id;
-
     $home_site = $aviator->get('field_home_site')->target_id;
-
     $default_aircraft = $aviator->get('field_default_aircraft')->target_id;
 
     $flight_class_terms = \Drupal::entityTypeManager()
@@ -329,9 +341,7 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
 
     $flight_plan = Node::create([
       'type' => 'working_flight_plan',
-
       'title' => 'New Flight Plan',
-
       'uid' => $this->currentUser()->id(),
 
       'field_aviator' => [
@@ -361,19 +371,54 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
       'field_flight_plan_status' => [
         'target_id' => $flight_plan_status ? $flight_plan_status->id() : NULL,
       ],
-
     ]);
 
     $flight_plan->save();
+
+    return $flight_plan;
+  }
+
+  public function add() {
+
+    $flight_plan = $this->createWorkingFlightPlan();
+
+    if (!$flight_plan) {
+      $this->messenger()->addError(
+        $this->t('No Aviator profile was found.')
+      );
+
+      return $this->redirect('<front>');
+    }
 
     return $this->redirect(
       'entity.node.edit_form',
       ['node' => $flight_plan->id()],
       [
         'query' => [
-          'destination' => Url::fromRoute('dronenav_flight_plan.list')->toString(),
+          'destination' => Url::fromRoute(
+            'dronenav_flight_plan.list'
+          )->toString(),
         ],
       ]
+    );
+
+  }
+
+  public function addVia() {
+
+    $flight_plan = $this->createWorkingFlightPlan();
+
+    if (!$flight_plan) {
+      $this->messenger()->addError(
+        $this->t('No Aviator profile was found.')
+      );
+
+      return $this->redirect('<front>');
+    }
+
+    return $this->redirect(
+      'dronenav_flight_plan.via',
+      ['node' => $flight_plan->id()]
     );
 
   }
@@ -410,41 +455,81 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
     /*
      * Derive and validate the direction-aware Route order.
      *
-     * A Flight Plan with no selected Routes returns a valid empty path.
+     * VIA Flight Plans order each Flight independently. Ordinary Flight
+     * Plans continue to use the legacy Flight Plan-level fields.
      */
-    $ordering = $this->flightPathOrderingService
-      ->orderFlightPath($node);
+    if (
+      $node->hasField('field_flights') &&
+      !$node->get('field_flights')->isEmpty()
+    ) {
+      $flights = $node
+        ->get('field_flights')
+        ->referencedEntities();
 
-    if (!$ordering['valid']) {
-      foreach ($ordering['errors'] as $error) {
-        $this->messenger()->addError($this->t($error));
+      foreach ($flights as $flight) {
+        $ordering = $this->flightPathOrderingService
+          ->orderFlightPath($flight);
+
+        if (!$ordering['valid']) {
+          foreach ($ordering['errors'] as $error) {
+            $this->messenger()->addError($this->t($error));
+          }
+
+          return $this->redirect('dronenav_flight_plan.list');
+        }
+
+        if (!empty($ordering['ordered_routes'])) {
+          $ordered_route_references = [];
+
+          foreach ($ordering['ordered_routes'] as $route) {
+            $ordered_route_references[] = [
+              'target_id' => $route->id(),
+            ];
+          }
+
+          $flight->set(
+            'field_flight_path',
+            $ordered_route_references
+          );
+
+          $flight->save();
+        }
       }
-
-      return $this->redirect('dronenav_flight_plan.list');
-    }
-
-    /*
-     * Rewrite the entity-reference field using the derived traversal order.
-     * Drupal preserves this item order through field deltas.
-     */
-    if (!empty($ordering['ordered_routes'])) {
-      $ordered_route_references = [];
-
-      foreach ($ordering['ordered_routes'] as $route) {
-        $ordered_route_references[] = [
-          'target_id' => $route->id(),
-        ];
-      }
-
-      $node->set(
-        'field_flight_path',
-        $ordered_route_references
-      );
 
       /*
-       * Save the ordered draft before sending it to the API.
+       * Save the Flight Plan so its Paragraph revisions reference the
+       * ordered Flight data before submission.
        */
       $node->save();
+    }
+    else {
+      $ordering = $this->flightPathOrderingService
+        ->orderFlightPath($node);
+
+      if (!$ordering['valid']) {
+        foreach ($ordering['errors'] as $error) {
+          $this->messenger()->addError($this->t($error));
+        }
+
+        return $this->redirect('dronenav_flight_plan.list');
+      }
+
+      if (!empty($ordering['ordered_routes'])) {
+        $ordered_route_references = [];
+
+        foreach ($ordering['ordered_routes'] as $route) {
+          $ordered_route_references[] = [
+            'target_id' => $route->id(),
+          ];
+        }
+
+        $node->set(
+          'field_flight_path',
+          $ordered_route_references
+        );
+
+        $node->save();
+      }
     }
 
     /*
