@@ -98,7 +98,7 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
             )
           );
 
-          if ($status === 'submitted' or $status === 'accepted') {
+          if ($status === 'submitted' || $status === 'accepted') {
             $operations[] = Link::fromTextAndUrl(
               $this->t('Cancel'),
               Url::fromRoute(
@@ -106,6 +106,29 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
                 ['node' => $node->id()]
               )
             )->toString();
+          }
+          elseif ($status === 'holding' && !$node->get('field_flights')->isEmpty()) {
+            $result = $this->flightExecutionService->getResumableFlightExecution($node->uuid());
+
+            if ($result['success'] && $result['flight_execution_id'] !== NULL) {
+              $url = Url::fromRoute(
+                'dronenav_flight_plan.resume',
+                [
+                  'node' => $node->id(),
+                  'flight_execution_id' => $result['flight_execution_id'],
+                ],
+                [
+                  'attributes' => [
+                    'class' => ['flight-plan-resume'],
+                  ],
+                ]
+              );
+
+              $operations[] = Link::fromTextAndUrl(
+                $this->t('Resume'),
+                $url
+              )->toString();
+            }
           }
 
           /*
@@ -400,25 +423,6 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
           )->toString(),
         ],
       ]
-    );
-
-  }
-
-  public function addVia() {
-
-    $flight_plan = $this->createWorkingFlightPlan();
-
-    if (!$flight_plan) {
-      $this->messenger()->addError(
-        $this->t('No Aviator profile was found.')
-      );
-
-      return $this->redirect('<front>');
-    }
-
-    return $this->redirect(
-      'dronenav_flight_plan.via',
-      ['node' => $flight_plan->id()]
     );
 
   }
@@ -1073,6 +1077,57 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
 
     return $this->redirect('dronenav_flight_plan.list');
   }
+
+
+  /**
+   * Resumes a VIA Flight Plan after an intermediate Flight has landed.
+   */
+  public function resume(
+    Node $node,
+    string $flight_execution_id
+  ) {
+
+    if ($node->bundle() !== 'working_flight_plan') {
+      throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException();
+    }
+
+    if ((int) $node->getOwnerId() !== (int) $this->currentUser()->id()) {
+      throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException();
+    }
+
+    if (
+      !$node->hasField('field_flights')
+      || $node->get('field_flights')->isEmpty()
+    ) {
+      $this->messenger()->addError(
+        $this->t('Only Via Flight Plans may be resumed.')
+      );
+
+      return $this->redirect('dronenav_flight_plan.list');
+    }
+
+    $result = $this->flightExecutionService->resumeFlightExecution(
+      $flight_execution_id
+    );
+
+    if (!$result['success']) {
+      $this->messenger()->addError(
+        $this->t(
+          'The active flight could not be resumed: @message',
+          ['@message' => $result['message']]
+        )
+      );
+
+      return $this->redirect('dronenav_flight_plan.list');
+    }
+
+    $this->messenger()->addStatus(
+      $this->t('The active flight has been resumed.')
+    );
+
+    return $this->redirect('dronenav_flight_plan.list');
+  }
+
 
 }
 

@@ -49,8 +49,18 @@
                 statuses[nodeId] &&
                 typeof statuses[nodeId].status === 'string'
               ) {
-                statusCell.textContent =
-                  statuses[nodeId].status;
+                const currentStatus = statusCell.textContent.trim();
+                const newStatus = statuses[nodeId].status;
+
+                if (
+                  currentStatus.toLowerCase() !== 'holding' &&
+                  newStatus.toLowerCase() === 'holding'
+                ) {
+                  window.location.reload();
+                  return;
+                }
+
+                statusCell.textContent = newStatus;
               }
             });
         }

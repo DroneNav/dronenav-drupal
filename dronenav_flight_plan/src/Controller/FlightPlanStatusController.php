@@ -4,11 +4,24 @@ namespace Drupal\dronenav_flight_plan\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Drupal\dronenav_flight_plan\Service\FlightExecutionService;
 
 /**
  * Returns Flight Plan statuses for the current aviator.
  */
 class FlightPlanStatusController extends ControllerBase {
+
+  public function __construct(
+    private readonly FlightExecutionService $flightExecutionService,
+  ) {}
+
+  public static function create(
+    \Symfony\Component\DependencyInjection\ContainerInterface $container
+  ): static {
+    return new static(
+      $container->get('dronenav_flight_plan.flight_execution'),
+    );
+  }
 
   /**
    * Returns the current aviator's Flight Plan statuses.

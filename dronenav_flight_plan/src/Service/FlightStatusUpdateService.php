@@ -39,6 +39,7 @@ final class FlightStatusUpdateService {
     'expired' => 'Expired',
     'rejected' => 'Rejected',
     'submitted' => 'Submitted',
+    'holding' => 'Holding',
   ];
 
   /**
@@ -49,7 +50,8 @@ final class FlightStatusUpdateService {
   private const ALLOWED_TRANSITIONS = [
     'submitted' => ['active', 'authorized', 'expired'],
     'authorized' => ['active', 'expired'],
-    'active' => ['submitted', 'completed'],
+    'active' => ['submitted', 'completed', 'holding'],
+    'holding' => ['active', 'expired', 'completed'],
   ];
 
   /**
@@ -58,6 +60,7 @@ final class FlightStatusUpdateService {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EntityFieldManagerInterface $entityFieldManager,
+    private readonly FlightExecutionService $flightExecutionService,
     private readonly LoggerInterface $logger,
   ) {}
 
@@ -279,7 +282,32 @@ final class FlightStatusUpdateService {
     }
 
     if ($node_ids === []) {
-      return NULL;
+      $result = $this->flightExecutionService->getRootFlightExecution(
+        $flight_execution_id
+      );
+
+      if (
+        !$result['success']
+        || empty($result['root_flight_execution_id'])
+      ) {
+        return NULL;
+      }
+
+      $root_flight_execution_id = $result['root_flight_execution_id'];
+
+      $node_ids = $node_storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('type', self::FLIGHT_PLAN_BUNDLE)
+        ->condition(
+          self::EXECUTION_ID_FIELD,
+          $root_flight_execution_id
+        )
+        ->range(0, 2)
+        ->execute();
+
+      if ($node_ids === []) {
+        return NULL;
+      }
     }
 
     $flight_plan = $node_storage->load(reset($node_ids));

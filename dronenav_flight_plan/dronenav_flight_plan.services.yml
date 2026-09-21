@@ -32,5 +32,6 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@entity_field.manager'
+      - '@dronenav_flight_plan.flight_execution'
       - '@logger.channel.dronenav_flight_plan'
 
