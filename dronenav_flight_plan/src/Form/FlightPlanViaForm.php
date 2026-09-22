@@ -469,12 +469,27 @@ class FlightPlanViaForm extends FormBase {
       $previous_arrival_key =
         'arrival_droneport_' . $previous_number;
 
+      $previous_saved_flight =
+        $saved_flights[$previous_number - 1] ?? NULL;
+
       $origin_site_nid = $form_state->getValue(
         $previous_destination_key
+      ) ?: (
+        $previous_saved_flight
+          ? $previous_saved_flight
+            ->get('field_destination_site')
+            ->target_id
+          : NULL
       );
 
       $departure_droneport_nid = $form_state->getValue(
         $previous_arrival_key
+      ) ?: (
+        $previous_saved_flight
+          ? $previous_saved_flight
+            ->get('field_arrival_droneport')
+            ->target_id
+          : NULL
       );
 
       $saved_flight = $saved_flights[$flight_number - 1] ?? NULL;
@@ -579,17 +594,46 @@ class FlightPlanViaForm extends FormBase {
     }
 
     $last_flight_number = $via_flight_count;
+    $last_saved_flight =
+      $saved_flights[$last_flight_number - 1] ?? NULL;
+
+    $last_destination = $form_state->getValue(
+      'destination_site_' . $last_flight_number
+    ) ?: (
+      $last_saved_flight
+        ? $last_saved_flight
+          ->get('field_destination_site')
+          ->target_id
+        : NULL
+    );
+
+    $last_arrival = $form_state->getValue(
+      'arrival_droneport_' . $last_flight_number
+    ) ?: (
+      $last_saved_flight
+        ? $last_saved_flight
+          ->get('field_arrival_droneport')
+          ->target_id
+        : NULL
+    );
+
+    $last_flight_path = $form_state->getValue(
+      'flight_path_' . $last_flight_number
+    ) ?: (
+      $last_saved_flight
+        ? array_column(
+          $last_saved_flight
+            ->get('field_flight_path')
+            ->getValue(),
+          'target_id'
+        )
+        : []
+    );
 
     $can_add_via = (
-      !empty($form_state->getValue(
-        'destination_site_' . $last_flight_number
-      )) &&
-      !empty($form_state->getValue(
-        'arrival_droneport_' . $last_flight_number
-      )) &&
-      !empty($form_state->getValue(
-        'flight_path_' . $last_flight_number
-      ))
+      !empty($last_destination) &&
+      !empty($last_arrival) &&
+      !empty($last_flight_path)
     );
 
     $form['actions'] = [
@@ -821,6 +865,12 @@ class FlightPlanViaForm extends FormBase {
       $departure_datetime->format('Y-m-d\TH:i:s')
     );
 
+    $via_flight_count = (int) $form_state->get(
+      'via_flight_count'
+    );
+
+    $flights = [];
+
     $flight_1 = Paragraph::create([
       'type' => 'flight_plan_flight',
 
@@ -845,6 +895,8 @@ class FlightPlanViaForm extends FormBase {
         $form_state->getValue('flight_path') ?: []
       ),
     ]);
+
+    $flights[] = ['entity' => $flight_1];
 
     $flight_2 = Paragraph::create([
       'type' => 'flight_plan_flight',
@@ -871,6 +923,44 @@ class FlightPlanViaForm extends FormBase {
       ),
     ]);
 
+    $flights[] = ['entity' => $flight_2];
+
+    for ($flight_number = 3; $flight_number <= $via_flight_count; $flight_number++) {
+      $previous_number = $flight_number - 1;
+
+      $destination_key = 'destination_site_' . $flight_number;
+      $arrival_key = 'arrival_droneport_' . $flight_number;
+      $flight_path_key = 'flight_path_' . $flight_number;
+
+      $previous_destination_key =
+        'destination_site_' . $previous_number;
+      $previous_arrival_key =
+        'arrival_droneport_' . $previous_number;
+
+      $flight = Paragraph::create([
+        'type' => 'flight_plan_flight',
+        'field_origin_site' => [
+          'target_id' => $form_state->getValue($previous_destination_key),
+        ],
+        'field_departure_droneport' => [
+          'target_id' => $form_state->getValue($previous_arrival_key),
+        ],
+        'field_destination_site' => [
+          'target_id' => $form_state->getValue($destination_key),
+        ],
+        'field_arrival_droneport' => [
+          'target_id' => $form_state->getValue($arrival_key),
+        ],
+        'field_flight_path' => array_map(
+          static fn($route_nid) => ['target_id' => $route_nid],
+          $form_state->getValue($flight_path_key) ?: []
+        ),
+      ]);
+
+      $flights[] = ['entity' => $flight];
+    }
+
+
     $flight_plan->set(
       'field_origin_site',
       [
@@ -878,21 +968,18 @@ class FlightPlanViaForm extends FormBase {
       ]
     );
 
+    $last_destination_key =
+      'destination_site_' . $via_flight_count;
+
     $flight_plan->set(
       'field_destination_site',
-      [
-        'target_id' => $form_state->getValue('destination_site_2'),
-      ]
+      ['target_id' => $form_state->getValue($last_destination_key)]
     );
 
-    $flight_plan->set('field_flights', [
-      [
-        'entity' => $flight_1,
-      ],
-      [
-        'entity' => $flight_2,
-      ],
-    ]);
+    $flight_plan->set(
+      'field_flights',
+      $flights
+    );
 
     $flight_plan->save();
 
