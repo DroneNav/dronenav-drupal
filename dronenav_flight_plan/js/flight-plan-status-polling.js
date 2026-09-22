@@ -60,6 +60,10 @@
                   (
                     currentStatus.toLowerCase() === 'holding' &&
                     newStatus.toLowerCase() === 'expired'
+                  ) ||
+                  (
+                    currentStatus.toLowerCase() === 'holding' &&
+                    newStatus.toLowerCase() === 'active'
                   )
                 ) {
                   window.location.reload();

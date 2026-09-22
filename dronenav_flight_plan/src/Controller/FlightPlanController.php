@@ -676,6 +676,90 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
         $flight_plan->get('field_flight_execution_id')->value;
     }
 
+    $is_via = (
+      $flight_plan->hasField('field_flights') &&
+      !$flight_plan->get('field_flights')->isEmpty()
+    );
+
+    if ($is_via) {
+      foreach (
+        $flight_plan->get('field_flights')->referencedEntities()
+        as $flight
+      ) {
+        foreach ([
+          'field_origin_site',
+          'field_destination_site',
+        ] as $field_name) {
+
+          if (
+            !$flight->hasField($field_name) ||
+            $flight->get($field_name)->isEmpty()
+          ) {
+            continue;
+          }
+
+          $site = $flight->get($field_name)->entity;
+
+          if (
+            !$site ||
+            !$site->hasField('field_overlay_uuid') ||
+            $site->get('field_overlay_uuid')->isEmpty()
+          ) {
+            continue;
+          }
+
+          $site_uuids[] =
+            $site->get('field_overlay_uuid')->value;
+        }
+
+        foreach ([
+          'field_departure_droneport',
+          'field_arrival_droneport',
+        ] as $field_name) {
+
+          if (
+            !$flight->hasField($field_name) ||
+            $flight->get($field_name)->isEmpty()
+          ) {
+            continue;
+          }
+
+          $droneport = $flight->get($field_name)->entity;
+
+          if (
+            !$droneport ||
+            !$droneport->hasField('field_overlay_uuid') ||
+            $droneport->get('field_overlay_uuid')->isEmpty()
+          ) {
+            continue;
+          }
+
+          $droneport_uuids[] =
+            $droneport->get('field_overlay_uuid')->value;
+        }
+
+        if (
+          $flight->hasField('field_flight_path') &&
+          !$flight->get('field_flight_path')->isEmpty()
+        ) {
+          foreach (
+            $flight->get('field_flight_path')->referencedEntities()
+            as $route
+          ) {
+            if (
+              !$route->hasField('field_overlay_uuid') ||
+              $route->get('field_overlay_uuid')->isEmpty()
+            ) {
+              continue;
+            }
+
+            $route_uuids[] =
+              $route->get('field_overlay_uuid')->value;
+          }
+        }
+      }
+    }
+
     /*
      * Origin and destination Sites.
      */
