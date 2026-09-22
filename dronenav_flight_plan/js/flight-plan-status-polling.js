@@ -53,8 +53,14 @@
                 const newStatus = statuses[nodeId].status;
 
                 if (
-                  currentStatus.toLowerCase() !== 'holding' &&
-                  newStatus.toLowerCase() === 'holding'
+                  (
+                    currentStatus.toLowerCase() !== 'holding' &&
+                    newStatus.toLowerCase() === 'holding'
+                  ) ||
+                  (
+                    currentStatus.toLowerCase() === 'holding' &&
+                    newStatus.toLowerCase() === 'expired'
+                  )
                 ) {
                   window.location.reload();
                   return;

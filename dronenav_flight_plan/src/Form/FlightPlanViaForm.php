@@ -7,6 +7,8 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\Entity\Node;
 use Drupal\paragraphs\Entity\Paragraph;
 use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\ReplaceCommand;
 
 
 class FlightPlanViaForm extends FormBase {
@@ -118,6 +120,15 @@ class FlightPlanViaForm extends FormBase {
 
     $saved_flight_1 = $saved_flights[0] ?? NULL;
     $saved_flight_2 = $saved_flights[1] ?? NULL;
+
+    if ($form_state->get('via_flight_count') === NULL) {
+      $form_state->set(
+        'via_flight_count',
+        max(2, count($saved_flights))
+      );
+    }
+
+    $via_flight_count = $form_state->get('via_flight_count');
 
     $form['flight_plan'] = [
       '#type' => 'fieldset',
@@ -245,11 +256,14 @@ class FlightPlanViaForm extends FormBase {
       '#title' => $this->t('Departure DronePort'),
       '#options' => $departure_droneport_options,
       '#required' => TRUE,
-      '#default_value' => $saved_flight_1
-        ? $saved_flight_1
-          ->get('field_departure_droneport')
-          ->target_id
-        : NULL,
+      '#default_value' => $form_state->getValue('departure_droneport')
+        ?: (
+          $saved_flight_1
+            ? $saved_flight_1
+              ->get('field_departure_droneport')
+              ->target_id
+            : NULL
+        ),
     ];
 
     $form['flights']['flight_1']['destination_site'] = [
@@ -287,11 +301,14 @@ class FlightPlanViaForm extends FormBase {
       '#title' => $this->t('Arrival DronePort'),
       '#options' => $arrival_droneport_options,
       '#required' => TRUE,
-      '#default_value' => $saved_flight_1
-        ? $saved_flight_1
-          ->get('field_arrival_droneport')
-          ->target_id
-        : NULL,
+      '#default_value' => $form_state->getValue('arrival_droneport')
+        ?: (
+          $saved_flight_1
+            ? $saved_flight_1
+              ->get('field_arrival_droneport')
+              ->target_id
+            : NULL
+        ),
       '#ajax' => [
         'callback' => '::arrivalDronePortChanged',
         'wrapper' => 'flights-wrapper',
@@ -319,12 +336,15 @@ class FlightPlanViaForm extends FormBase {
       ),
       '#multiple' => TRUE,
       '#required' => TRUE,
-      '#default_value' => $saved_flight_1
-        ? array_column(
-          $saved_flight_1->get('field_flight_path')->getValue(),
-          'target_id'
-        )
-        : [],
+      '#default_value' => $form_state->getValue('flight_path')
+        ?: (
+          $saved_flight_1
+            ? array_column(
+              $saved_flight_1->get('field_flight_path')->getValue(),
+              'target_id'
+            )
+            : []
+        ),
     ];
 
 
@@ -397,11 +417,18 @@ class FlightPlanViaForm extends FormBase {
       '#title' => $this->t('Arrival DronePort'),
       '#options' => $flight_2_arrival_droneport_options,
       '#required' => TRUE,
-      '#default_value' => $saved_flight_2
-        ? $saved_flight_2
-          ->get('field_arrival_droneport')
-          ->target_id
-        : NULL,
+      '#default_value' => $form_state->getValue('arrival_droneport_2')
+        ?: (
+          $saved_flight_2
+            ? $saved_flight_2
+              ->get('field_arrival_droneport')
+              ->target_id
+            : NULL
+        ),
+      '#ajax' => [
+        'callback' => '::flight2Changed',
+        'wrapper' => 'flights-wrapper',
+      ],
     ];
 
     $form['flights']['flight_2']['flight_path_2'] = [
@@ -415,13 +442,155 @@ class FlightPlanViaForm extends FormBase {
       ),
       '#multiple' => TRUE,
       '#required' => TRUE,
-      '#default_value' => $saved_flight_2
-        ? array_column(
-          $saved_flight_2->get('field_flight_path')->getValue(),
-          'target_id'
-        )
-        : [],
+      '#default_value' => $form_state->getValue('flight_path_2')
+        ?: (
+          $saved_flight_2
+            ? array_column(
+              $saved_flight_2->get('field_flight_path')->getValue(),
+              'target_id'
+            )
+            : []
+        ),
+      '#ajax' => [
+        'callback' => '::flight2Changed',
+        'wrapper' => 'flights-wrapper',
+      ],
     ];
+
+    for ($flight_number = 3; $flight_number <= $via_flight_count; $flight_number++) {
+      $previous_number = $flight_number - 1;
+
+      $destination_key = 'destination_site_' . $flight_number;
+      $arrival_key = 'arrival_droneport_' . $flight_number;
+      $flight_path_key = 'flight_path_' . $flight_number;
+
+      $previous_destination_key =
+        'destination_site_' . $previous_number;
+      $previous_arrival_key =
+        'arrival_droneport_' . $previous_number;
+
+      $origin_site_nid = $form_state->getValue(
+        $previous_destination_key
+      );
+
+      $departure_droneport_nid = $form_state->getValue(
+        $previous_arrival_key
+      );
+
+      $saved_flight = $saved_flights[$flight_number - 1] ?? NULL;
+
+      $form['flights']['flight_' . $flight_number] = [
+        '#type' => 'fieldset',
+        '#title' => $this->t('Flight @number', [
+          '@number' => $flight_number,
+        ]),
+      ];
+
+      $origin_site = $origin_site_nid
+        ? Node::load($origin_site_nid)
+        : NULL;
+
+      $form['flights']['flight_' . $flight_number]['origin_site'] = [
+        '#type' => 'item',
+        '#title' => $this->t('Origin Site'),
+        '#markup' => $origin_site
+          ? $origin_site->label()
+          : '',
+      ];
+
+      $departure_droneport = $departure_droneport_nid
+        ? Node::load($departure_droneport_nid)
+        : NULL;
+
+      $form['flights']['flight_' . $flight_number]['departure_droneport'] = [
+        '#type' => 'item',
+        '#title' => $this->t('Departure DronePort'),
+        '#markup' => $departure_droneport
+          ? $departure_droneport->label()
+          : '',
+      ];
+
+      $form['flights']['flight_' . $flight_number][$destination_key] = [
+        '#type' => 'select',
+        '#title' => $this->t('Destination Site'),
+        '#options' => \Drupal::service(
+          'dronenav_flight_plan.option_service'
+        )->getSiteOptions($authority_nid),
+        '#required' => TRUE,
+        '#ajax' => [
+          'callback' => '::dynamicFlightChanged',
+          'wrapper' => 'flights-wrapper',
+        ],
+        '#default_value' => $saved_flight
+          ? $saved_flight->get('field_destination_site')->target_id
+          : NULL,
+      ];
+
+      $destination_site_nid = $form_state->getValue(
+        $destination_key
+      ) ?: (
+        $saved_flight
+          ? $saved_flight->get('field_destination_site')->target_id
+          : NULL
+      );
+
+      $arrival_droneport_options = \Drupal::service(
+        'dronenav_flight_plan.option_service'
+      )->getDronePortOptions($destination_site_nid);
+
+      unset($arrival_droneport_options['_none']);
+
+      $form['flights']['flight_' . $flight_number][$arrival_key] = [
+        '#type' => 'select',
+        '#title' => $this->t('Arrival DronePort'),
+        '#options' => $arrival_droneport_options,
+        '#required' => TRUE,
+        '#ajax' => [
+          'callback' => '::dynamicFlightChanged',
+          'wrapper' => 'flights-wrapper',
+        ],
+        '#default_value' => $saved_flight
+          ? $saved_flight->get('field_arrival_droneport')->target_id
+          : NULL,
+      ];
+
+      $form['flights']['flight_' . $flight_number][$flight_path_key] = [
+        '#type' => 'select',
+        '#title' => $this->t('Flight Path'),
+        '#options' => \Drupal::service(
+          'dronenav_flight_plan.option_service'
+        )->getRouteOptions(
+          $origin_site_nid,
+          $destination_site_nid
+        ),
+        '#multiple' => TRUE,
+        '#required' => TRUE,
+        '#ajax' => [
+          'callback' => '::dynamicFlightChanged',
+          'wrapper' => 'flights-wrapper',
+        ],
+        '#default_value' => $saved_flight
+          ? array_column(
+            $saved_flight->get('field_flight_path')->getValue(),
+            'target_id'
+          )
+          : [],
+      ];
+    }
+
+    $last_flight_number = $via_flight_count;
+
+    $can_add_via = (
+      !empty($form_state->getValue(
+        'destination_site_' . $last_flight_number
+      )) &&
+      !empty($form_state->getValue(
+        'arrival_droneport_' . $last_flight_number
+      )) &&
+      !empty($form_state->getValue(
+        'flight_path_' . $last_flight_number
+      ))
+    );
 
     $form['actions'] = [
       '#type' => 'actions',
@@ -431,6 +600,26 @@ class FlightPlanViaForm extends FormBase {
       '#type' => 'submit',
       '#value' => $this->t('Save Via Flight Plan'),
       '#button_type' => 'primary',
+    ];
+
+    $form['actions']['add_via'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Add Via'),
+      '#submit' => ['::addVia'],
+      '#ajax' => [
+        'callback' => '::addViaCallback',
+        'wrapper' => 'flights-wrapper',
+      ],
+      '#disabled' => !$can_add_via,
+      '#prefix' => '<span id="add-via-wrapper">',
+      '#suffix' => '</span>',
+    ];
+
+    $form['actions']['cancel'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Cancel'),
+      '#submit' => ['::cancelForm'],
+      '#limit_validation_errors' => [],
     ];
 
     return $form;
@@ -480,6 +669,95 @@ class FlightPlanViaForm extends FormBase {
     FormStateInterface $form_state
   ) {
     return $form['flights'];
+  }
+
+  public function addVia(
+    array &$form,
+    FormStateInterface $form_state
+  ): void {
+
+    $via_flight_count = (int) $form_state->get(
+      'via_flight_count'
+    );
+
+    $form_state->set(
+      'via_flight_count',
+      $via_flight_count + 1
+    );
+
+    $form_state->setRebuild();
+  }
+
+  public function addViaCallback(
+    array &$form,
+    FormStateInterface $form_state
+  ): AjaxResponse {
+
+    $response = new AjaxResponse();
+
+    $response->addCommand(
+      new ReplaceCommand(
+        '#flights-wrapper',
+        $form['flights']
+      )
+    );
+
+    $response->addCommand(
+      new ReplaceCommand(
+        '#add-via-wrapper',
+        $form['actions']['add_via']
+      )
+    );
+
+    return $response;
+  }
+
+  public function flight2Changed(
+    array &$form,
+    FormStateInterface $form_state
+  ): AjaxResponse {
+
+    $response = new AjaxResponse();
+
+    $response->addCommand(
+      new ReplaceCommand(
+        '#flights-wrapper',
+        $form['flights']
+      )
+    );
+
+    $response->addCommand(
+      new ReplaceCommand(
+        '#add-via-wrapper',
+        $form['actions']['add_via']
+      )
+    );
+
+    return $response;
+  }
+
+  public function dynamicFlightChanged(
+    array &$form,
+    FormStateInterface $form_state
+  ): AjaxResponse {
+
+    $response = new AjaxResponse();
+
+    $response->addCommand(
+      new ReplaceCommand(
+        '#flights-wrapper',
+        $form['flights']
+      )
+    );
+
+    $response->addCommand(
+      new ReplaceCommand(
+        '#add-via-wrapper',
+        $form['actions']['add_via']
+      )
+    );
+
+    return $response;
   }
 
   public function submitForm(
@@ -621,6 +899,17 @@ class FlightPlanViaForm extends FormBase {
     $this->messenger()->addStatus(
       $this->t('Via Flight Plan saved.')
     );
+
+    $form_state->setRedirect(
+      'dronenav_flight_plan.list'
+    );
+
+  }
+
+  public function cancelForm(
+    array &$form,
+    FormStateInterface $form_state
+  ): void {
 
     $form_state->setRedirect(
       'dronenav_flight_plan.list'
