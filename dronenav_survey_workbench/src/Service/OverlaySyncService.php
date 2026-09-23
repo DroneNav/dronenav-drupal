@@ -12,13 +12,16 @@ class OverlaySyncService {
 
   protected EntityTypeManagerInterface $entityTypeManager;
   protected ClientInterface $httpClient;
+  protected SurveyWorkbenchContextService $context;
 
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
-    ClientInterface $http_client
+    ClientInterface $http_client,
+    SurveyWorkbenchContextService $context
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->httpClient = $http_client;
+    $this->context = $context;
   }
 
   public function syncOverlays(): array {
@@ -281,12 +284,21 @@ class OverlaySyncService {
       return FALSE;
     }
 
+    $authority_id = $this->context->getHomeAuthorityId();
+
+    if (!$authority_id) {
+      throw new \RuntimeException('Cannot create survey without a Home Authority.');
+    }
+
     $survey = Node::create([
       'type' => 'working_overlay_survey',
       'title' => $overlay->label(),
       'status' => 0,
       'field_overlay' => [
         'target_id' => $overlay->id(),
+      ],
+      'field_authority' => [
+        'target_id' => $authority_id,
       ],
     ]);
 

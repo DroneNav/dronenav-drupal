@@ -14,15 +14,18 @@ class SurveyService {
   protected EntityTypeManagerInterface $entityTypeManager;
   protected AccountProxyInterface $currentUser;
   protected ClientInterface $httpClient;
+  protected SurveyWorkbenchContextService $context;
 
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
     AccountProxyInterface $current_user,
-    ClientInterface $http_client
+    ClientInterface $http_client,
+    SurveyWorkbenchContextService $context
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->currentUser = $current_user;
     $this->httpClient = $http_client;
+    $this->context = $context;
   }
 
   public function getOrCreateWorkingSurvey(Node $overlay): Node {
@@ -44,11 +47,18 @@ class SurveyService {
   }
 
   protected function createWorkingSurvey(Node $overlay): Node {
+    $authority_id = $this->context->getHomeAuthorityId();
+
+    if (!$authority_id) {
+      throw new \RuntimeException('Cannot create survey without a Home Authority.');
+    }
+
     $survey = Node::create([
       'type' => 'working_overlay_survey',
       'title' => $overlay->label(),
       'status' => 0,
       'field_overlay' => ['target_id' => $overlay->id()],
+      'field_authority' => ['target_id' => $authority_id],
     ]);
 
     $survey->save();

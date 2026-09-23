@@ -14,15 +14,18 @@ class SurveySummaryService {
   protected EntityTypeManagerInterface $entityTypeManager;
   protected AccountProxyInterface $currentUser;
   protected ClientInterface $httpClient;
+  protected SurveyWorkbenchContextService $context;
 
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
     AccountProxyInterface $current_user,
-    ClientInterface $http_client
+    ClientInterface $http_client,
+    SurveyWorkbenchContextService $context
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->currentUser = $current_user;
     $this->httpClient = $http_client;
+    $this->context = $context;
   }
 
   public function getOrCreateWorkingSurveySummary(Node $site_overlay): Node {
@@ -44,10 +47,19 @@ class SurveySummaryService {
   }
 
   protected function createWorkingSurveySummary(Node $site_overlay): Node {
+    $authority_nid = $this->context->getHomeAuthorityNodeId();
+
+    if (!$authority_nid) {
+      throw new \RuntimeException('Cannot create survey summary without a Home Authority.');
+    }
+
     $summary = Node::create([
       'type' => 'working_site_survey_summary',
       'title' => $this->generateSurveySummaryTitleFromSite($site_overlay),
       'status' => 0,
+      'field_authority' => [
+        'target_id' => $authority_nid,
+      ],
       'field_overlay_surveys' => [
         ['target_id' => $site_overlay->id()],
       ],

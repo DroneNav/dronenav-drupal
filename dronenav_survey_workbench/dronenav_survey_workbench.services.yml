@@ -4,6 +4,13 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@http_client'
+      - '@dronenav_survey_workbench.context'
+
+  dronenav_survey_workbench.context:
+    class: Drupal\dronenav_survey_workbench\Service\SurveyWorkbenchContextService
+    arguments:
+      - '@entity_type.manager'
+      - '@current_user'
 
   dronenav_survey_workbench.survey:
     class: Drupal\dronenav_survey_workbench\Service\SurveyService
@@ -11,6 +18,7 @@ services:
       - '@entity_type.manager'
       - '@current_user'
       - '@http_client'
+      - '@dronenav_survey_workbench.context'
 
   dronenav_survey_workbench.survey_summary:
     class: Drupal\dronenav_survey_workbench\Service\SurveySummaryService
@@ -18,6 +26,7 @@ services:
       - '@entity_type.manager'
       - '@current_user'
       - '@http_client'
+      - '@dronenav_survey_workbench.context'
 
   dronenav_survey_workbench.overlay_review:
     class: Drupal\dronenav_survey_workbench\Service\OverlayReviewService

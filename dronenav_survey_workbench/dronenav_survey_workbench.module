@@ -3,6 +3,9 @@
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
+use Drupal\views\ViewExecutable;
+use Drupal\views\Plugin\views\query\QueryPluginBase;
+
 
 /**
  * Implements hook_form_alter().
@@ -558,6 +561,153 @@ function dronenav_survey_workbench_theme(
       'template' => 'surveyor-app',
     ],
   ];
+}
+
+/**
+ * Implements hook_views_query_alter().
+ */
+function dronenav_survey_workbench_views_query_alter(
+  ViewExecutable $view,
+  QueryPluginBase $query,
+): void {
+  if (
+    !in_array($view->id(), ['surveys', 'survey_summaries', 'overlay_reviews', 'operational_site_reviews'],
+              TRUE) || $view->current_display !== 'page_1'
+  ) {
+    return;
+  }
+
+  $authority_id = \Drupal::service('dronenav_survey_workbench.context')
+    ->getHomeAuthorityId();
+
+  if (!$authority_id) {
+    return;
+  }
+
+  if ($view->id() === 'surveys') {
+    $authority_nid = \Drupal::service('dronenav_survey_workbench.context')
+      ->getHomeAuthorityNodeId();
+
+    if (!$authority_nid) {
+      return;
+    }
+
+    $survey_authority_join = \Drupal::service('plugin.manager.views.join')->createInstance('standard', [
+      'table' => 'node__field_authority',
+      'field' => 'entity_id',
+      'left_table' => 'node_field_data',
+      'left_field' => 'nid',
+      'type' => 'INNER',
+    ]);
+
+    $query->addRelationship(
+      'survey_authority',
+      $survey_authority_join,
+      'node__field_authority'
+    );
+
+    $query->addWhere(
+      0,
+      'survey_authority.field_authority_target_id',
+      $authority_nid
+    );
+
+    return;
+  }
+
+  if ($view->id() === 'survey_summaries') {
+    $authority_nid = \Drupal::service('dronenav_survey_workbench.context')
+      ->getHomeAuthorityNodeId();
+
+    if (!$authority_nid) {
+      return;
+    }
+
+    $summary_authority_join = \Drupal::service('plugin.manager.views.join')->createInstance('standard', [
+      'table' => 'node__field_authority',
+      'field' => 'entity_id',
+      'left_table' => 'node_field_data',
+      'left_field' => 'nid',
+      'type' => 'INNER',
+    ]);
+
+    $query->addRelationship(
+      'summary_authority',
+      $summary_authority_join,
+      'node__field_authority'
+    );
+
+    $query->addWhere(
+      0,
+      'summary_authority.field_authority_target_id',
+      $authority_nid
+    );
+
+    return;
+  }
+
+  if ($view->id() === 'overlay_reviews') {
+    $authority_nid = \Drupal::service('dronenav_survey_workbench.context')
+      ->getHomeAuthorityNodeId();
+
+    if (!$authority_nid) {
+      return;
+    }
+
+    $review_authority_join = \Drupal::service('plugin.manager.views.join')->createInstance('standard', [
+      'table' => 'node__field_authority',
+      'field' => 'entity_id',
+      'left_table' => 'node_field_data_node__field_survey',
+      'left_field' => 'nid',
+      'type' => 'INNER',
+    ]);
+
+    $query->addRelationship(
+      'review_authority',
+      $review_authority_join,
+      'node__field_authority'
+    );
+
+    $query->addWhere(
+      0,
+      'review_authority.field_authority_target_id',
+      $authority_nid
+    );
+
+    return;
+  }
+
+  if ($view->id() === 'operational_site_reviews') {
+    $authority_nid = \Drupal::service('dronenav_survey_workbench.context')
+      ->getHomeAuthorityNodeId();
+
+    if (!$authority_nid) {
+      return;
+    }
+
+    $site_review_authority_join = \Drupal::service('plugin.manager.views.join')->createInstance('standard', [
+      'table' => 'node__field_authority',
+      'field' => 'entity_id',
+      'left_table' => 'node_field_data_node__field_site_survey_summary',
+      'left_field' => 'nid',
+      'type' => 'INNER',
+    ]);
+
+    $query->addRelationship(
+      'site_review_authority',
+      $site_review_authority_join,
+      'node__field_authority'
+    );
+
+    $query->addWhere(
+      0,
+      'site_review_authority.field_authority_target_id',
+      $authority_nid
+    );
+
+    return;
+  }
+
 }
 
 
