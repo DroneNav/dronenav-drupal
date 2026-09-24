@@ -284,9 +284,9 @@ class OverlaySyncService {
       return FALSE;
     }
 
-    $authority_id = $this->context->getHomeAuthorityId();
+    $authority_nid = $this->context->getHomeAuthorityNodeId();
 
-    if (!$authority_id) {
+    if (!$authority_nid) {
       throw new \RuntimeException('Cannot create survey without a Home Authority.');
     }
 
@@ -298,7 +298,7 @@ class OverlaySyncService {
         'target_id' => $overlay->id(),
       ],
       'field_authority' => [
-        'target_id' => $authority_id,
+        'target_id' => $authority_nid,
       ],
     ]);
 

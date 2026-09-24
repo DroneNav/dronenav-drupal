@@ -28,6 +28,59 @@ class SurveyService {
     $this->context = $context;
   }
 
+  public function getRegions(): array {
+    $response = $this->httpClient->get(
+      self::API_BASE . '/zones/regions',
+      [
+        'timeout' => 15,
+        'verify' => FALSE,
+      ]
+    );
+
+    $data = json_decode((string) $response->getBody(), TRUE);
+
+    if (!is_array($data)) {
+      throw new \RuntimeException('Invalid Region response from DroneNav API.');
+    }
+
+    return $data;
+  }
+
+  public function geometryIntersectsRegion(
+    string $region_id,
+    array $geometry
+  ): bool {
+    $response = $this->httpClient->post(
+      self::API_BASE . '/zones/regions/' . $region_id . '/intersection',
+      [
+        'json' => [
+          'geometry' => $geometry,
+        ],
+        'timeout' => 15,
+        'verify' => FALSE,
+        'http_errors' => FALSE,
+      ]
+    );
+
+    if ($response->getStatusCode() === 404) {
+      return FALSE;
+    }
+
+    if ($response->getStatusCode() !== 200) {
+      throw new \RuntimeException(
+        'Region intersection request failed with HTTP ' . $response->getStatusCode() . '.'
+      );
+    }
+
+    $data = json_decode((string) $response->getBody(), TRUE);
+
+    if (!is_array($data) || !array_key_exists('intersects', $data)) {
+      throw new \RuntimeException('Invalid Region intersection response from DroneNav API.');
+    }
+
+    return (bool) $data['intersects'];
+  }
+
   public function getOrCreateWorkingSurvey(Node $overlay): Node {
     return $this->findWorkingSurvey($overlay) ?: $this->createWorkingSurvey($overlay);
   }
@@ -47,9 +100,9 @@ class SurveyService {
   }
 
   protected function createWorkingSurvey(Node $overlay): Node {
-    $authority_id = $this->context->getHomeAuthorityId();
+    $authority_nid = $this->context->getHomeAuthorityNodeId();
 
-    if (!$authority_id) {
+    if (!$authority_nid) {
       throw new \RuntimeException('Cannot create survey without a Home Authority.');
     }
 
@@ -58,7 +111,7 @@ class SurveyService {
       'title' => $overlay->label(),
       'status' => 0,
       'field_overlay' => ['target_id' => $overlay->id()],
-      'field_authority' => ['target_id' => $authority_id],
+      'field_authority' => ['target_id' => $authority_nid],
     ]);
 
     $survey->save();
