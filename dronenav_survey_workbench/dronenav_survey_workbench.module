@@ -710,4 +710,19 @@ function dronenav_survey_workbench_views_query_alter(
 
 }
 
+/**
+ * Implements hook_views_data_alter().
+ */
+function dronenav_survey_workbench_views_data_alter(array &$data): void {
+  $data['node_field_data']['dronenav_region'] = [
+    'title' => t('Region'),
+    'help' => t('Filter by geographic Region intersection.'),
+    'filter' => [
+      'id' => 'dronenav_region',
+    ],
+  ];
+
+
+}
+
 

@@ -295,6 +295,42 @@ class SurveyService {
     );
   }
 
+  public function getOverlayGeometry(
+    string $overlay_type,
+    string $overlay_uuid
+  ): ?array {
+    $endpoint_map = [
+      'site' => '/sites/',
+      'zone' => '/zones/',
+      'droneport' => '/droneports/',
+      'route' => '/routes/',
+    ];
+
+    if (!isset($endpoint_map[$overlay_type])) {
+      return NULL;
+    }
+
+    $response = $this->httpClient->get(
+      self::API_BASE . $endpoint_map[$overlay_type] . $overlay_uuid,
+      [ 'timeout' => 15,
+        'verify' => FALSE,
+        'http_errors' => FALSE,
+      ]
+    );
+
+    $data = json_decode((string) $response->getBody(), TRUE);
+
+    if (
+      !is_array($data) ||
+      !isset($data['geometry']) ||
+      !is_array($data['geometry'])
+    ) {
+      return NULL;
+    }
+
+    return $data['geometry'];
+  }
+
   protected function getOverlaySurveyStatus(string $overlay_type, string $overlay_uuid): ?string {
     $endpoint_map = [
       'site' => '/sites/',
