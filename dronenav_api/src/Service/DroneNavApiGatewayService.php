@@ -829,7 +829,106 @@ final class DroneNavApiGatewayService {
     );
   }
 
+  /**
+   * Loads all DroneNav Obstacles.
+   */
+  public function getObstacles(): array {
+    return $this->request(
+      'GET',
+      '/api/obstacles'
+    );
+  }
 
+  /**
+   * Loads one DroneNav Obstacle.
+   */
+  public function getObstacle(string $obstacle_id): array {
+    $obstacle_id = trim($obstacle_id);
+
+    if ($obstacle_id === '') {
+      return [
+        'success' => FALSE,
+        'status' => 400,
+        'data' => NULL,
+        'message' => 'The Obstacle ID is required.',
+      ];
+    }
+
+    return $this->request(
+      'GET',
+      '/api/obstacles/' . $obstacle_id
+    );
+  }
+
+  /**
+   * Creates a new DroneNav Obstacle.
+   */
+  public function createObstacle(array $obstacle): array {
+
+    return $this->request(
+      'POST',
+      '/api/obstacles',
+      [
+        'json' => $obstacle,
+      ]
+    );
+  }
+
+  /**
+   * Updates a DroneNav Obstacle.
+   */
+  public function updateObstacle(string $obstacle_id, array $obstacle): array {
+
+    return $this->request(
+      'PATCH',
+      '/api/obstacles/' . $obstacle_id,
+      [
+        'json' => $obstacle,
+      ]
+    );
+  }
+
+  /**
+   * Deletes one DroneNav Obstacle.
+   */
+  public function deleteObstacle(string $obstacle_id): array {
+    $obstacle_id = trim($obstacle_id);
+
+    if ($obstacle_id === '') {
+      return [
+        'success' => FALSE,
+        'status' => 400,
+        'data' => NULL,
+        'message' => 'The Obstacle ID is required.',
+      ];
+    }
+
+    return $this->request(
+      'DELETE',
+      '/api/obstacles/' . $obstacle_id
+    );
+  }
+
+    /**
+     * Associates an Obstacle with its intersecting Site.
+     */
+    public function associateObstacleSite(string $obstacle_id): array {
+      $obstacle_id = trim($obstacle_id);
+
+      if ($obstacle_id === '') {
+        return [
+          'success' => FALSE,
+          'status' => 400,
+          'data' => NULL,
+          'message' => 'The Obstacle ID is required.',
+        ];
+      }
+
+      return $this->request(
+        'PATCH',
+        '/api/obstacles/' . $obstacle_id . '/site-association'
+      );
+    }
 
 
 

@@ -196,6 +196,58 @@ dronenav_api.gateway.delete_route:
     route_id: '[0-9a-fA-F-]+'
   methods: [DELETE]
 
+dronenav_api.gateway.obstacles:
+  path: '/api-gateway/obstacles'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\ObstacleGatewayController::list'
+  requirements:
+    _permission: 'access dronenav api gateway'
+  methods: [GET]
+
+dronenav_api.gateway.obstacle:
+  path: '/api-gateway/obstacles/{obstacle_id}'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\ObstacleGatewayController::get'
+  requirements:
+    _permission: 'access dronenav api gateway'
+    obstacle_id: '[0-9a-fA-F-]+'
+  methods: [GET]
+
+dronenav_api.gateway.create_obstacle:
+  path: '/api-gateway/obstacles'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\ObstacleGatewayController::createObstacle'
+  requirements:
+    _permission: 'edit dronenav overlays'
+  methods: [POST]
+
+dronenav_api.gateway.update_obstacle:
+  path: '/api-gateway/obstacles/{obstacle_id}'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\ObstacleGatewayController::updateObstacle'
+  requirements:
+    _permission: 'edit dronenav overlays'
+    obstacle_id: '[0-9a-fA-F-]+'
+  methods: [PATCH]
+
+dronenav_api.gateway.obstacle_site_association:
+  path: '/api-gateway/obstacles/{obstacle_id}/site-association'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\ObstacleGatewayController::associateSite'
+  requirements:
+    _permission: 'edit dronenav overlays'
+    obstacle_id: '[0-9a-fA-F-]+'
+  methods: [PATCH]
+
+dronenav_api.gateway.delete_obstacle:
+  path: '/api-gateway/obstacles/{obstacle_id}'
+  defaults:
+    _controller: '\Drupal\dronenav_api\Controller\ObstacleGatewayController::delete'
+  requirements:
+    _permission: 'delete dronenav overlays'
+    obstacle_id: '[0-9a-fA-F-]+'
+  methods: [DELETE]
+
 dronenav_api.gateway.reference-data:
   path: '/api-gateway/reference-data'
   defaults:
