@@ -104,6 +104,30 @@ class OverlaySyncService {
       ];
     }
 
+    $obstacles_response = $this->getOverlaysFromApi('/obstacles');
+    $obstacles = $obstacles_response['obstacles'] ?? [];
+
+    foreach ($obstacles as $obstacle) {
+      if (empty($obstacle['obstacle_id']) || empty($obstacle['obstacle_name'])) {
+        $skipped++;
+        continue;
+      }
+
+      if (empty($obstacle['site_id'])) {
+        $association = $this->associateObstacleSite($obstacle['obstacle_id']);
+
+        if (array_key_exists('site_id', $association)) {
+          $obstacle['site_id'] = $association['site_id'];
+        }
+      }
+
+      $overlays[] = [
+        'type' => 'obstacle',
+        'uuid' => $obstacle['obstacle_id'],
+        'title' => $obstacle['obstacle_name'],
+        'parent_site_id' => $obstacle['site_id'] ?? NULL,
+      ];
+    }
 
     foreach ($overlays as $overlay) {
       if (empty($overlay['type']) || empty($overlay['uuid']) || empty($overlay['title'])) {
@@ -117,7 +141,7 @@ class OverlaySyncService {
 
       $bundle = $overlay['type'];
 
-      if (!in_array($bundle, ['site', 'zone', 'route', 'droneport'], TRUE)) {
+      if (!in_array($bundle, ['site', 'zone', 'route', 'droneport', 'obstacle'], TRUE)) {
         $skipped++;
         continue;
       }
@@ -363,6 +387,17 @@ class OverlaySyncService {
       }
     }
 
+    foreach (($package['obstacles'] ?? []) as $obstacle) {
+      if (!empty($obstacle['obstacle_id'])) {
+        $proxy = $this->findOverlayNode('obstacle', $obstacle['obstacle_id']);
+        $survey = $proxy ? $this->findWorkingSurveyForOverlay($proxy) : NULL;
+
+        if ($survey) {
+          $target_ids[] = ['target_id' => $survey->id()];
+        }
+      }
+    }
+
     $storage = $this->entityTypeManager->getStorage('node');
 
     $ids = $storage->getQuery()
@@ -444,6 +479,24 @@ class OverlaySyncService {
         'timeout' => 15,
         'verify' => FALSE,
       ]);
+
+      return json_decode($response->getBody()->getContents(), TRUE) ?? [];
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('dronenav_survey_workbench')->error($e->getMessage());
+      return [];
+    }
+  }
+
+  protected function associateObstacleSite(string $obstacle_id): array {
+    try {
+      $response = $this->httpClient->patch(
+        self::API_BASE . '/obstacles/' . $obstacle_id . '/site-association',
+        [
+          'timeout' => 15,
+          'verify' => FALSE,
+        ]
+      );
 
       return json_decode($response->getBody()->getContents(), TRUE) ?? [];
     }

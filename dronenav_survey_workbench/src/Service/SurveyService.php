@@ -304,6 +304,7 @@ class SurveyService {
       'zone' => '/zones/',
       'droneport' => '/droneports/',
       'route' => '/routes/',
+      'obstacle' => '/obstacles/',
     ];
 
     if (!isset($endpoint_map[$overlay_type])) {
@@ -337,6 +338,7 @@ class SurveyService {
       'zone' => '/zones/',
       'droneport' => '/droneports/',
       'route' => '/routes/',
+      'obstacle' => '/obstacles/',
     ];
 
     if (!isset($endpoint_map[$overlay_type])) {
