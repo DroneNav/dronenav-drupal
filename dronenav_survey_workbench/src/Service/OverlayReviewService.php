@@ -156,7 +156,7 @@ class OverlayReviewService {
           : $existing_comments . "\n\n" . $entry
       );
 
-      $survey->setPublished(FALSE);
+      $survey->setUnpublished();
       $survey->save();
     }
 
@@ -182,7 +182,7 @@ class OverlayReviewService {
       }
     }
 
-    $review->setPublished(FALSE);
+    $review->setUnpublished();
     $review->save();
   }
 
@@ -242,7 +242,7 @@ class OverlayReviewService {
           : $existing_comments . "\n\n" . $entry
       );
 
-      $survey->setPublished(FALSE);
+      $survey->setUnpublished();
       $survey->save();
     }
 
@@ -268,7 +268,7 @@ class OverlayReviewService {
       }
     }
 
-    $review->setPublished(FALSE);
+    $review->setUnpublished();
     $review->save();
   }
 

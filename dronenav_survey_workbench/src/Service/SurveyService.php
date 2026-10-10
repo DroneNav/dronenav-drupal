@@ -206,8 +206,9 @@ class SurveyService {
     }
 
     // The review is awaiting another governance decision.
-    $review->setPublished(FALSE);
+    $review->setUnpublished();
     $review->save();
+
   }
 
   protected function getReviewStatusTid(string $name): ?int {

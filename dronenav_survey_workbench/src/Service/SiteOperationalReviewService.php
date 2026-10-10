@@ -85,13 +85,13 @@ class SiteOperationalReviewService {
       );
     }
 
-    $summary->setPublished(FALSE);
+    $summary->setUnpublished();
     $summary->save();
 
     $this->setReviewStatus($review, 'Rejected');
     $this->setDecisionFields($review);
 
-    $review->setPublished(FALSE);
+    $review->setUnpublished();
     $review->save();
   }
 
