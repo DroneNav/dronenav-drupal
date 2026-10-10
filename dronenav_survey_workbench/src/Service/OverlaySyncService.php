@@ -398,6 +398,12 @@ class OverlaySyncService {
       }
     }
 
+    if ($site_survey->get('field_authority')->isEmpty()) {
+      throw new \RuntimeException('Site survey is missing its Authority reference.');
+    }
+
+    $authority_nid = $site_survey->get('field_authority')->target_id;
+
     $storage = $this->entityTypeManager->getStorage('node');
 
     $ids = $storage->getQuery()
@@ -420,6 +426,12 @@ class OverlaySyncService {
         ]);
       }
 
+      if ($summary && $summary->hasField('field_authority')) {
+        $summary->set('field_authority', [
+          'target_id' => $authority_nid,
+        ]);
+      }
+
       if ($summary && $summary->hasField('field_overlay_surveys')) {
         $summary->set('field_overlay_surveys', $target_ids);
         $summary->save();
@@ -434,6 +446,9 @@ class OverlaySyncService {
       'status' => 0,
       'field_site' => [
         'target_id' => $site_overlay->id(),
+      ],
+      'field_authority' => [
+        'target_id' => $authority_nid,
       ],
       'field_overlay_surveys' => $target_ids,
     ]);
