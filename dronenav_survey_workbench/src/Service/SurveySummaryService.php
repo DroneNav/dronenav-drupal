@@ -115,7 +115,7 @@ class SurveySummaryService {
     }
 
     $summary->setTitle($this->generateSurveySummaryTitle($summary));
-    $summary->setPublished(TRUE);
+    $summary->setPublished();
     $summary->save();
   }
 
@@ -195,7 +195,7 @@ class SurveySummaryService {
   }
 
   protected function submitSiteSurveySummaryStatus(string $site_uuid, string $surveyed_by): void {
-    $this->httpClient->post(
+    $response = $this->httpClient->post(
       self::API_BASE . '/governance/sites/' . $site_uuid . '/survey-package',
       [
         'json' => [
@@ -203,8 +203,27 @@ class SurveySummaryService {
         ],
         'timeout' => 15,
         'verify' => FALSE,
+        'http_errors' => FALSE,
       ]
     );
+
+    $status = $response->getStatusCode();
+
+    if ($status >= 400) {
+      $body = (string) $response->getBody();
+
+      \Drupal::logger('dronenav_survey_workbench')->error(
+        'Site survey package submission failed (HTTP @status): @body',
+        [
+          '@status' => $status,
+          '@body' => $body,
+        ]
+      );
+
+      throw new \RuntimeException(
+        'Site survey package submission failed (HTTP ' . $status . '): ' . $body
+      );
+    }
   }
 
   protected function getSiteSurveySummaryStatus(string $site_uuid): ?string {
