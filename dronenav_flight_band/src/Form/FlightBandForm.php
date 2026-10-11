@@ -106,15 +106,18 @@ class FlightBandForm extends FormBase {
       '#type' => 'checkboxes',
       '#title' => $this->t('Days of Week'),
       '#options' => [
-        0 => $this->t('Sunday'),
-        1 => $this->t('Monday'),
-        2 => $this->t('Tuesday'),
-        3 => $this->t('Wednesday'),
-        4 => $this->t('Thursday'),
-        5 => $this->t('Friday'),
-        6 => $this->t('Saturday'),
+        1 => $this->t('Sunday'),
+        2 => $this->t('Monday'),
+        3 => $this->t('Tuesday'),
+        4 => $this->t('Wednesday'),
+        5 => $this->t('Thursday'),
+        6 => $this->t('Friday'),
+        7 => $this->t('Saturday'),
       ],
-      '#default_value' => $band['days'] ?? [0, 1, 2, 3, 4, 5, 6],
+      '#default_value' => array_map(
+        static fn($day) => (int) $day + 1,
+        $band['days'] ?? [0, 1, 2, 3, 4, 5, 6]
+      ),
     ];
 
     $form['start_time'] = [
@@ -196,11 +199,13 @@ class FlightBandForm extends FormBase {
 
     $uuid = $form_state->getValue('uuid');
 
+    $selected_days = $form_state->getValue('days');
+
     $days = [];
 
     foreach ($form_state->getValue('days') as $value) {
-      if ($value !== NULL && $value !== '' && $value !== FALSE) {
-        $days[] = (int) $value;
+      if ($value !== 0 && $value !== '0' && $value !== NULL && $value !== FALSE) {
+        $days[] = (int) $value - 1;
       }
     }
 
