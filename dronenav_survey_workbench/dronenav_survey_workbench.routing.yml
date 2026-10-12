@@ -103,3 +103,10 @@ dronenav_survey_workbench.activate_site_review:
     _permission: 'perform dronenav governance reviews'
     nid: '\d+'
 
+dronenav_survey_workbench.traffic_network:
+  path: '/traffic-network'
+  defaults:
+    _controller: '\Drupal\dronenav_survey_workbench\Controller\WorkbenchController::trafficNetwork'
+    _title: 'Traffic Management Network'
+  requirements:
+    _permission: 'manage dronenav traffic network'

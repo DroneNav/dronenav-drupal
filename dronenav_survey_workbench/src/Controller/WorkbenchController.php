@@ -190,6 +190,34 @@ class WorkbenchController extends ControllerBase {
     );
   }
 
+  /**
+   * Displays the Traffic Management Network in a standalone page.
+   */
+  public function trafficNetwork() {
+    $content = [
+      '#type' => 'container',
+      '#attributes' => [
+        'id' => 'root',
+        'data-mode' => 'network3d',
+        'style' => 'position: fixed; inset: 0; width: 100vw; height: 100vh; overflow: hidden; background: #000; z-index: 1000;',
+      ],
+      '#attached' => [
+        'library' => [
+          'dronenav_survey_workbench/react_map',
+        ],
+      ],
+      '#cache' => [
+        'max-age' => 0,
+      ],
+    ];
+
+    return $this->bareHtmlPageRenderer->renderBarePage(
+      $content,
+      'Traffic Management Network',
+      'page'
+    );
+  }
+
 
 }
 
