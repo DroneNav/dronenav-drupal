@@ -87,7 +87,7 @@ dronenav_flight_plan.map:
   path: '/flight-plan/{nid}/map'
   defaults:
     _controller: '\Drupal\dronenav_flight_plan\Controller\FlightPlanController::map'
-    _title: 'Flight Plan Map'
+    _title_callback: '\Drupal\dronenav_flight_plan\Controller\FlightPlanController::mapTitle'
   requirements:
     _permission: 'access content'
     node: '\d+'

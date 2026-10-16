@@ -1212,6 +1212,20 @@ class FlightPlanController extends ControllerBase implements ContainerInjectionI
     return $this->redirect('dronenav_flight_plan.list');
   }
 
+  /**
+   * Returns the dynamic Flight Plan Map page title.
+   */
+  public function mapTitle($nid) {
+    $node = \Drupal::entityTypeManager()
+      ->getStorage('node')
+      ->load($nid);
+
+    if (!$node) {
+      return 'Flight Plan Map';
+    }
+
+    return $node->label() . ' Map';
+  }
 
 }
 
