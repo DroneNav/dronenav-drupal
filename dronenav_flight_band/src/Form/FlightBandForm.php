@@ -102,6 +102,18 @@ class FlightBandForm extends FormBase {
       '#default_value' => $band['max_agl_ft'] ?? 500,
     ];
 
+    $form['commanded_cruise_speed_mph'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Commanded Cruise Speed (MPH)'),
+      '#required' => TRUE,
+      '#min' => 0,
+      '#max' => 130,
+      '#step' => 0.01,
+      '#default_value' => isset($band['commanded_cruise_speed_ft_s'])
+        ? round((float) $band['commanded_cruise_speed_ft_s'] * 15 / 22, 2) : NULL,
+      '#description' => $this->t('Enter the commanded cruise speed between 0 and 130 MPH.'),
+    ];
+
     $form['days'] = [
       '#type' => 'checkboxes',
       '#title' => $this->t('Days of Week'),
@@ -217,6 +229,8 @@ class FlightBandForm extends FormBase {
       'band_name' => $form_state->getValue('band_name'),
       'min_agl_ft' => (int) $form_state->getValue('min_agl_ft'),
       'max_agl_ft' => (int) $form_state->getValue('max_agl_ft'),
+      'commanded_cruise_speed_ft_s' => round(
+        (float) $form_state->getValue('commanded_cruise_speed_mph') * 22 / 15, 2),
       'days' => $days,
       'start_time' => $form_state->getValue('start_time'),
       'end_time' => $form_state->getValue('end_time'),
@@ -229,10 +243,6 @@ class FlightBandForm extends FormBase {
     else {
       $data['created_by'] = $this->currentUser()->getAccountName();
     }
-
-\Drupal::logger('dronenav_flight_band')->notice('Flight Band update payload: @payload', [
-  '@payload' => json_encode($data),
-]);
 
     if ($uuid) {
       $result = $this->flightBandApi->updateFlightBand($uuid, $data);

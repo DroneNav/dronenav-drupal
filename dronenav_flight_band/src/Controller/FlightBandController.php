@@ -50,6 +50,7 @@ class FlightBandController extends ControllerBase {
       $this->t('Band Name'),
       $this->t('Min AGL'),
       $this->t('Max AGL'),
+      $this->t('Cruise Speed (MPH)'),
       $this->t('Days'),
       $this->t('Start'),
       $this->t('End'),
@@ -101,6 +102,12 @@ class FlightBandController extends ControllerBase {
         $band['band_name'] ?? '',
         $band['min_agl_ft'] ?? '',
         $band['max_agl_ft'] ?? '',
+        isset($band['commanded_cruise_speed_ft_s'])
+          ? number_format(
+              (float) $band['commanded_cruise_speed_ft_s'] * 15 / 22,
+              2
+            )
+          : '',
         implode(',', $band['days'] ?? []),
         $band['start_time'] ?? '',
         $band['end_time'] ?? '',
