@@ -1,0 +1,9 @@
+aircraft_delete:
+  css:
+    theme:
+      css/aircraft-delete.css: {}
+  js:
+    js/aircraft-delete.js: {}
+  dependencies:
+    - core/drupal
+    - core/once

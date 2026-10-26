@@ -1,0 +1,6 @@
+dronenav_aircraft.list:
+  title: 'Aircraft'
+  description: 'Manage DroneNav Aircraft.'
+  route_name: dronenav_aircraft.list
+  parent: system.admin
+  weight: 20

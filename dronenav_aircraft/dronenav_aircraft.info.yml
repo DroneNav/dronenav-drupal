@@ -1,0 +1,5 @@
+name: DroneNav Aircraft
+type: module
+description: 'Administrative aircraft management for DroneNav aviators.'
+package: DroneNav
+core_version_requirement: ^11

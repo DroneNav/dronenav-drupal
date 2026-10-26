@@ -1,0 +1,4 @@
+administer dronenav aircraft:
+  title: 'Administer DroneNav Aircraft'
+  description: 'Create, view, and edit aircraft belonging to aviators.'
+  restrict access: true

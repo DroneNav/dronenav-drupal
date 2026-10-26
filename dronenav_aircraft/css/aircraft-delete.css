@@ -1,0 +1,36 @@
+input[type="submit"].dronenav-aircraft-delete,
+button.dronenav-aircraft-delete {
+  appearance: none !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: var(--gin-color-primary, #0074bd) !important;
+  cursor: pointer;
+  display: inline !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: 400 !important;
+  line-height: inherit !important;
+  margin: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  text-decoration: underline !important;
+  text-transform: none !important;
+}
+
+input[type="submit"].dronenav-aircraft-delete:hover,
+button.dronenav-aircraft-delete:hover {
+  text-decoration: none !important;
+}
+
+/* Keep Edit and Delete together on one line. */
+.dronenav-aircraft-operations {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+
+

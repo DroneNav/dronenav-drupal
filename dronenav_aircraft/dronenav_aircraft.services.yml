@@ -1,0 +1,8 @@
+services:
+  dronenav_aircraft.api:
+    class: Drupal\dronenav_aircraft\Service\AircraftApi
+    arguments: ['@http_client', '@logger.channel.dronenav_aircraft']
+
+  logger.channel.dronenav_aircraft:
+    parent: logger.channel_base
+    arguments: ['dronenav_aircraft']

@@ -1,0 +1,24 @@
+dronenav_aircraft.list:
+  path: '/admin/aircraft'
+  defaults:
+    _controller: '\Drupal\dronenav_aircraft\Controller\AircraftController::listing'
+    _title: 'Aircraft'
+  requirements:
+    _permission: 'administer dronenav aircraft'
+
+dronenav_aircraft.add:
+  path: '/admin/aircraft/add'
+  defaults:
+    _form: '\Drupal\dronenav_aircraft\Form\AircraftForm'
+    _title: 'Add Aircraft'
+  requirements:
+    _permission: 'administer dronenav aircraft'
+
+dronenav_aircraft.edit:
+  path: '/admin/aircraft/{aircraft_id}/edit'
+  defaults:
+    _form: '\Drupal\dronenav_aircraft\Form\AircraftForm'
+    _title: 'Edit Aircraft'
+  requirements:
+    _permission: 'administer dronenav aircraft'
+
