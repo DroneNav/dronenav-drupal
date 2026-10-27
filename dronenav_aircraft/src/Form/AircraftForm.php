@@ -141,6 +141,21 @@ class AircraftForm extends FormBase {
         : NULL,
     ];
 
+    $form['planned_deceleration_ft_s2'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Planned Deceleration (ft/s²)'),
+      '#required' => FALSE,
+      '#min' => 0,
+      '#step' => 0.01,
+      '#default_value' => $aircraft['planned_deceleration_ft_s2'] ?? NULL,
+    ];
+
+    $form['deceleration_verified'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Deceleration Verified'),
+      '#default_value' => !empty($aircraft['deceleration_verified']),
+    ];
+
     $form['operational_status'] = [
       '#type' => 'select',
       '#title' => $this->t('Operational Status'),
@@ -181,9 +196,13 @@ class AircraftForm extends FormBase {
       'height_cm' => (float) $form_state->getValue('height_cm'),
       'maximum_takeoff_weight_kg' => (float) $form_state->getValue('maximum_takeoff_weight_kg'),
       'maximum_speed_ft_s' => round(
-        (float) $form_state->getValue('maximum_speed_mph') * 22 / 15,
-        2
-      ),
+        (float) $form_state->getValue('maximum_speed_mph') * 22 / 15, 2),
+      'planned_deceleration_ft_s2' => (
+        $form_state->getValue('planned_deceleration_ft_s2') === ''
+        || $form_state->getValue('planned_deceleration_ft_s2') === NULL)
+        ? NULL
+        : (float) $form_state->getValue('planned_deceleration_ft_s2'),
+      'deceleration_verified' => (bool) $form_state->getValue('deceleration_verified'),
       'operational_status' => strtolower($form_state->getValue('operational_status')),
     ];
 
