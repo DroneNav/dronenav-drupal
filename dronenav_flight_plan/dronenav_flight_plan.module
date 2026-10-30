@@ -45,6 +45,13 @@ function dronenav_flight_plan_form_node_working_flight_plan_edit_form_alter(
     ->getFormObject()
     ->getEntity();
 
+  if (
+    isset($form['field_flight_calibration'])
+    && !in_array('administrator', \Drupal::currentUser()->getRoles(), TRUE)
+  ) {
+    $form['field_flight_calibration']['#access'] = FALSE;
+  }
+
   $is_return_trip =
     $flight_plan->hasField('field_round_trip_parent') &&
     !$flight_plan->get('field_round_trip_parent')->isEmpty();

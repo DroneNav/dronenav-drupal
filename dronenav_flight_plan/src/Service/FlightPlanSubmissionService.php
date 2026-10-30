@@ -104,6 +104,9 @@ class FlightPlanSubmissionService {
 
       'flight_class' => $flight_class->label(),
 
+      'flight_calibration' => (bool) $flight_plan
+        ->get('field_flight_calibration')->value,
+
       'origin_site_id' => $this->getRequiredFieldValue(
         $origin_site,
         'field_overlay_uuid'
