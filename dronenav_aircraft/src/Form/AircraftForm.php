@@ -141,21 +141,6 @@ class AircraftForm extends FormBase {
         : NULL,
     ];
 
-    $form['planned_deceleration_ft_s2'] = [
-      '#type' => 'number',
-      '#title' => $this->t('Planned Deceleration (ft/s²)'),
-      '#required' => FALSE,
-      '#min' => 0,
-      '#step' => 0.01,
-      '#default_value' => $aircraft['planned_deceleration_ft_s2'] ?? NULL,
-    ];
-
-    $form['deceleration_verified'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Deceleration Verified'),
-      '#default_value' => !empty($aircraft['deceleration_verified']),
-    ];
-
     $form['operational_status'] = [
       '#type' => 'select',
       '#title' => $this->t('Operational Status'),
@@ -163,6 +148,175 @@ class AircraftForm extends FormBase {
       '#options' => $this->getTaxonomyOptions('aircraft_status'),
       '#default_value' => strtolower($aircraft['operational_status'] ?? 'active'),
     ];
+
+    if ($aircraft_id) {
+      $profiles = $this->aircraftApi->getDecelerationProfiles($aircraft_id);
+
+      usort($profiles, static function ($a, $b) {
+        return (float) $a['cruise_speed_ft_s']
+          <=> (float) $b['cruise_speed_ft_s'];
+      });
+
+      $edit_profile_id = \Drupal::request()->query->get('edit_profile');
+      $editing_profile = NULL;
+
+      foreach ($profiles as $profile) {
+        if ($profile['profile_id'] === $edit_profile_id) {
+          $editing_profile = $profile;
+          break;
+        }
+      }
+
+      $form['calibration_profiles'] = [
+        '#type' => 'details',
+        '#title' => $this->t('Calibration Profiles'),
+        '#open' => TRUE,
+        '#tree' => TRUE,
+      ];
+
+      $form['calibration_profiles']['grid'] = [
+        '#type' => 'table',
+        '#header' => [
+          $this->t('Cruise Speed (ft/s)'),
+          $this->t('Deceleration (ft/s²)'),
+          $this->t('Verified'),
+          $this->t('Samples'),
+          $this->t('Last Calibration'),
+          $this->t('Operations'),
+        ],
+        '#empty' => $this->t('No calibration profiles defined.'),
+      ];
+
+      foreach ($profiles as $profile) {
+        $edit_url = \Drupal\Core\Url::fromRoute(
+          'dronenav_aircraft.edit',
+          ['aircraft_id' => $aircraft_id],
+          [
+            'query' => [
+              'edit_profile' => $profile['profile_id'],
+            ],
+          ]
+        );
+
+        $edit_link = \Drupal\Core\Link::fromTextAndUrl(
+          $this->t('Edit'),
+          $edit_url
+        )->toString();
+
+        $delete_button = [
+          '#type' => 'submit',
+          '#attributes' => [
+            'style' => 'background: none; border: none; box-shadow: none; color: #006bb6; padding: 0; margin: 0; text-decoration: underline; cursor: pointer; font: inherit;',
+          ],
+          '#value' => $this->t('Delete'),
+          '#name' => 'delete_profile_' . $profile['profile_id'],
+          '#submit' => ['::deleteProfileSubmit'],
+          '#limit_validation_errors' => [],
+          '#profile_id' => $profile['profile_id'],
+        ];
+
+        $profile_id = $profile['profile_id'];
+
+        $form['calibration_profiles']['grid'][$profile_id] = [
+          'speed' => [
+            '#plain_text' => $profile['cruise_speed_ft_s'],
+          ],
+          'deceleration' => [
+            '#plain_text' => $profile['planned_deceleration_ft_s2'] ?? '—',
+          ],
+          'verified' => [
+            '#plain_text' => !empty($profile['deceleration_verified']) ? 'Yes' : 'No',
+          ],
+          'samples' => [
+            '#plain_text' => $profile['sample_count'] ?? 0,
+          ],
+          'calibrated' => [
+            '#plain_text' => !empty($profile['calibrated_at'])
+              ? substr($profile['calibrated_at'], 0, 16)
+              : '—',
+          ],
+          'operations' => [
+            '#type' => 'container',
+            'edit' => [
+              '#markup' => $edit_link . ' | ',
+            ],
+            'delete' => $delete_button,
+          ],
+        ];
+
+      }
+
+      if ($editing_profile !== NULL) {
+        $form['calibration_profiles']['edit_profile'] = [
+          '#type' => 'details',
+          '#title' => $this->t('Edit Calibration Profile'),
+          '#open' => TRUE,
+        ];
+
+        $form['calibration_profiles']['edit_profile']['profile_id'] = [
+          '#type' => 'hidden',
+          '#value' => $editing_profile['profile_id'],
+        ];
+
+        $form['calibration_profiles']['edit_profile']['cruise_speed_ft_s'] = [
+          '#type' => 'number',
+          '#title' => $this->t('Cruise Speed (ft/s)'),
+          '#required' => TRUE,
+          '#min' => 0.01,
+          '#step' => 0.01,
+          '#default_value' => $editing_profile['cruise_speed_ft_s'],
+        ];
+
+        $form['calibration_profiles']['edit_profile']['planned_deceleration_ft_s2'] = [
+          '#type' => 'number',
+          '#title' => $this->t('Initial Deceleration (ft/s²)'),
+          '#min' => 0.01,
+          '#step' => 0.01,
+          '#default_value' => $editing_profile['planned_deceleration_ft_s2'],
+          '#disabled' => $editing_profile['planned_deceleration_ft_s2'] !== NULL,
+          '#description' => $this->t('Once established, deceleration is maintained by NAVProxy.'),
+        ];
+
+        $form['calibration_profiles']['edit_profile']['save'] = [
+          '#type' => 'submit',
+          '#value' => $this->t('Save Profile'),
+          '#submit' => ['::updateProfileSubmit'],
+          '#limit_validation_errors' => [
+            ['calibration_profiles', 'edit_profile'],
+          ],
+        ];
+      }
+
+      $form['calibration_profiles']['add_profile'] = [
+        '#type' => 'details',
+        '#title' => $this->t('Add Calibration Profile'),
+        '#open' => FALSE,
+      ];
+
+      $form['calibration_profiles']['add_profile']['cruise_speed_ft_s'] = [
+        '#type' => 'number',
+        '#title' => $this->t('Cruise Speed (ft/s)'),
+        '#min' => 0.01,
+        '#step' => 0.01,
+      ];
+
+      $form['calibration_profiles']['add_profile']['planned_deceleration_ft_s2'] = [
+        '#type' => 'number',
+        '#title' => $this->t('Initial Deceleration (ft/s²)'),
+        '#description' => $this->t('Optional. Once set, this value is maintained by NAVProxy.'),
+        '#min' => 0.01,
+        '#step' => 0.01,
+      ];
+
+      $form['calibration_profiles']['add_profile']['create'] = [
+        '#type' => 'submit',
+        '#value' => $this->t('Create Profile'),
+        '#submit' => ['::createProfileSubmit'],
+        '#limit_validation_errors' => [
+          ['calibration_profiles', 'add_profile'],
+        ],
+      ];
+    }
 
     $form['actions'] = [
       '#type' => 'actions',
@@ -175,6 +329,181 @@ class AircraftForm extends FormBase {
     ];
 
     return $form;
+  }
+
+  /**
+   * Deletes a calibration profile without saving the aircraft.
+   */
+  public function deleteProfileSubmit(
+    array &$form,
+    FormStateInterface $form_state
+  ): void {
+
+    $aircraft_id = \Drupal::routeMatch()->getParameter('aircraft_id');
+
+    $button = $form_state->getTriggeringElement();
+    $profile_id = $button['#profile_id'] ?? NULL;
+
+    if (!$aircraft_id || !$profile_id) {
+      $this->messenger()->addError($this->t('Unable to identify calibration profile.'));
+      return;
+    }
+
+    $result = $this->aircraftApi->deleteDecelerationProfile(
+      $aircraft_id,
+      $profile_id
+    );
+
+    if (isset($result['error'])) {
+      $this->messenger()->addError($result['error']);
+    }
+    else {
+      $this->messenger()->addStatus($this->t('Calibration profile deleted.'));
+    }
+
+    $form_state->setRedirect(
+      'dronenav_aircraft.edit',
+      ['aircraft_id' => $aircraft_id]
+    );
+
+  }
+
+  /**
+   * Updates a calibration profile without saving the aircraft.
+   */
+  public function updateProfileSubmit(
+    array &$form,
+    FormStateInterface $form_state
+  ): void {
+
+    $aircraft_id = \Drupal::routeMatch()->getParameter('aircraft_id');
+
+    $profile = $form_state->getValue([
+      'calibration_profiles',
+      'edit_profile',
+    ], []);
+
+    $profile_id = $profile['profile_id'] ?? NULL;
+    $speed = $profile['cruise_speed_ft_s'] ?? NULL;
+    $deceleration = $profile['planned_deceleration_ft_s2'] ?? NULL;
+
+    if (!$aircraft_id || !$profile_id) {
+      $this->messenger()->addError($this->t('Unable to identify calibration profile.'));
+      return;
+    }
+
+    if (!is_numeric($speed) || (float) $speed <= 0) {
+      $this->messenger()->addError($this->t('Enter a valid cruise speed.'));
+      return;
+    }
+
+    $data = [
+      'cruise_speed_ft_s' => (float) $speed,
+      'updated_by' => $this->currentUser()->getAccountName(),
+    ];
+
+    // Only allow the administrator to establish an initial deceleration.
+    $profiles = $this->aircraftApi->getDecelerationProfiles($aircraft_id);
+
+    foreach ($profiles as $existing_profile) {
+      if ($existing_profile['profile_id'] === $profile_id) {
+        if (
+          $existing_profile['planned_deceleration_ft_s2'] === NULL
+          && $deceleration !== NULL
+          && $deceleration !== ''
+        ) {
+          if (!is_numeric($deceleration) || (float) $deceleration <= 0) {
+            $this->messenger()->addError($this->t('Enter a valid initial deceleration.'));
+            return;
+          }
+
+          $data['planned_deceleration_ft_s2'] = (float) $deceleration;
+        }
+
+        break;
+      }
+    }
+
+    $result = $this->aircraftApi->updateDecelerationProfile(
+      $aircraft_id,
+      $profile_id,
+      $data
+    );
+
+    if (isset($result['error'])) {
+      $this->messenger()->addError($result['error']);
+    }
+    else {
+      $this->messenger()->addStatus($this->t('Calibration profile updated.'));
+    }
+
+    $form_state->setRedirect(
+      'dronenav_aircraft.edit',
+      ['aircraft_id' => $aircraft_id]
+    );
+
+  }
+
+  /**
+   * Creates a calibration profile without saving the aircraft.
+   */
+  public function createProfileSubmit(
+    array &$form,
+    FormStateInterface $form_state
+  ): void {
+
+    $aircraft_id = \Drupal::routeMatch()->getParameter('aircraft_id');
+
+    $speed = $form_state->getValue([
+      'calibration_profiles',
+      'add_profile',
+      'cruise_speed_ft_s',
+    ]);
+
+    $deceleration = $form_state->getValue([
+      'calibration_profiles',
+      'add_profile',
+      'planned_deceleration_ft_s2',
+    ]);
+
+    if (!is_numeric($speed) || (float) $speed <= 0) {
+      $this->messenger()->addError($this->t('Enter a valid cruise speed.'));
+      $form_state->setRebuild(TRUE);
+      return;
+    }
+
+    if (
+      $deceleration !== NULL
+      && $deceleration !== ''
+      && (!is_numeric($deceleration) || (float) $deceleration <= 0)
+    ) {
+      $this->messenger()->addError($this->t('Enter a valid initial deceleration.'));
+      $form_state->setRebuild(TRUE);
+      return;
+    }
+
+    $data = [
+      'cruise_speed_ft_s' => (float) $speed,
+      'planned_deceleration_ft_s2' => (
+        $deceleration === NULL || $deceleration === ''
+      ) ? NULL : (float) $deceleration,
+      'updated_by' => $this->currentUser()->getAccountName(),
+    ];
+
+    $result = $this->aircraftApi->createDecelerationProfile($aircraft_id, $data);
+
+    if (isset($result['error'])) {
+      $this->messenger()->addError($result['error']);
+    }
+    else {
+      $this->messenger()->addStatus($this->t('Calibration profile created.'));
+    }
+
+    $form_state->setRedirect(
+      'dronenav_aircraft.edit',
+      ['aircraft_id' => $aircraft_id]
+    );
+
   }
 
   /**
@@ -197,12 +526,6 @@ class AircraftForm extends FormBase {
       'maximum_takeoff_weight_kg' => (float) $form_state->getValue('maximum_takeoff_weight_kg'),
       'maximum_speed_ft_s' => round(
         (float) $form_state->getValue('maximum_speed_mph') * 22 / 15, 2),
-      'planned_deceleration_ft_s2' => (
-        $form_state->getValue('planned_deceleration_ft_s2') === ''
-        || $form_state->getValue('planned_deceleration_ft_s2') === NULL)
-        ? NULL
-        : (float) $form_state->getValue('planned_deceleration_ft_s2'),
-      'deceleration_verified' => (bool) $form_state->getValue('deceleration_verified'),
       'operational_status' => strtolower($form_state->getValue('operational_status')),
     ];
 

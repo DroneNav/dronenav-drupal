@@ -79,6 +79,154 @@ class AircraftApi {
   }
 
   /**
+   * Returns calibration profiles for an aircraft.
+   */
+  public function getDecelerationProfiles(string $aircraft_id): array {
+
+    try {
+      $response = $this->httpClient->request(
+        'GET',
+        self::API_BASE_URL . '/aircraft/' . $aircraft_id . '/deceleration-profiles'
+      );
+
+      $data = json_decode($response->getBody()->getContents(), TRUE);
+
+      return $data['profiles'] ?? [];
+    }
+    catch (\Exception $e) {
+      $this->logger->error('Unable to retrieve calibration profiles for aircraft @id: @message', [
+        '@id' => $aircraft_id,
+        '@message' => $e->getMessage(),
+      ]);
+
+      return [];
+    }
+
+  }
+
+  /**
+   * Creates a deceleration calibration profile.
+   */
+  public function createDecelerationProfile(string $aircraft_id, array $data): array {
+
+    try {
+      $response = $this->httpClient->request(
+        'POST',
+        self::API_BASE_URL . '/aircraft/' . $aircraft_id . '/deceleration-profiles',
+        [
+          'json' => $data,
+        ]
+      );
+
+      return json_decode($response->getBody()->getContents(), TRUE) ?? [];
+    }
+    catch (\GuzzleHttp\Exception\ClientException $e) {
+      $response = $e->getResponse();
+
+      if ($response && $response->getStatusCode() === 409) {
+        return [
+          'error' => 'A calibration profile already exists for this cruise speed.',
+        ];
+      }
+
+      $this->logger->error('Unable to create calibration profile for aircraft @id: @message', [
+        '@id' => $aircraft_id,
+        '@message' => $e->getMessage(),
+      ]);
+
+      return ['error' => 'Unable to create calibration profile.'];
+    }
+    catch (\Exception $e) {
+      $this->logger->error('Unable to create calibration profile for aircraft @id: @message', [
+        '@id' => $aircraft_id,
+        '@message' => $e->getMessage(),
+      ]);
+
+      return ['error' => 'Unable to create calibration profile.'];
+    }
+
+  }
+
+  /**
+   * Updates a deceleration calibration profile.
+   */
+  public function updateDecelerationProfile(
+    string $aircraft_id,
+    string $profile_id,
+    array $data
+  ): array {
+
+    try {
+      $response = $this->httpClient->request(
+        'PATCH',
+        self::API_BASE_URL . '/aircraft/' . $aircraft_id
+          . '/deceleration-profiles/' . $profile_id,
+        [
+          'json' => $data,
+        ]
+      );
+
+      return json_decode($response->getBody()->getContents(), TRUE) ?? [];
+    }
+    catch (\GuzzleHttp\Exception\ClientException $e) {
+      $response = $e->getResponse();
+
+      if ($response && $response->getStatusCode() === 409) {
+        return [
+          'error' => 'A calibration profile already exists for this cruise speed.',
+        ];
+      }
+
+      $this->logger->error('Unable to update calibration profile @profile for aircraft @id: @message', [
+        '@profile' => $profile_id,
+        '@id' => $aircraft_id,
+        '@message' => $e->getMessage(),
+      ]);
+
+      return ['error' => 'Unable to update calibration profile.'];
+    }
+    catch (\Exception $e) {
+      $this->logger->error('Unable to update calibration profile @profile for aircraft @id: @message', [
+        '@profile' => $profile_id,
+        '@id' => $aircraft_id,
+        '@message' => $e->getMessage(),
+      ]);
+
+      return ['error' => 'Unable to update calibration profile.'];
+    }
+
+  }
+
+  /**
+   * Deletes a deceleration calibration profile.
+   */
+  public function deleteDecelerationProfile(
+    string $aircraft_id,
+    string $profile_id
+  ): array {
+
+    try {
+      $response = $this->httpClient->request(
+        'DELETE',
+        self::API_BASE_URL . '/aircraft/' . $aircraft_id
+          . '/deceleration-profiles/' . $profile_id
+      );
+
+      return json_decode($response->getBody()->getContents(), TRUE) ?? [];
+    }
+    catch (\Exception $e) {
+      $this->logger->error('Unable to delete calibration profile @profile for aircraft @id: @message', [
+        '@profile' => $profile_id,
+        '@id' => $aircraft_id,
+        '@message' => $e->getMessage(),
+      ]);
+
+      return ['error' => 'Unable to delete calibration profile.'];
+    }
+
+  }
+
+  /**
    * Creates an aircraft.
    */
   public function createAircraft(array $data): array {
