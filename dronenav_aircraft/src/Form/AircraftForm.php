@@ -135,9 +135,9 @@ class AircraftForm extends FormBase {
       '#title' => $this->t('Maximum Speed (mph)'),
       '#required' => TRUE,
       '#min' => 0,
-      '#step' => 0.01,
+      '#step' => 1,
       '#default_value' => isset($aircraft['maximum_speed_ft_s'])
-        ? round((float) $aircraft['maximum_speed_ft_s'] * 15 / 22, 2)
+        ? round((float) $aircraft['maximum_speed_ft_s'] * 15 / 22)
         : NULL,
     ];
 
@@ -177,7 +177,7 @@ class AircraftForm extends FormBase {
       $form['calibration_profiles']['grid'] = [
         '#type' => 'table',
         '#header' => [
-          $this->t('Cruise Speed (ft/s)'),
+          $this->t('Cruise Speed (MPH)'),
           $this->t('Deceleration (ft/s²)'),
           $this->t('Verified'),
           $this->t('Samples'),
@@ -219,7 +219,7 @@ class AircraftForm extends FormBase {
 
         $form['calibration_profiles']['grid'][$profile_id] = [
           'speed' => [
-            '#plain_text' => $profile['cruise_speed_ft_s'],
+            '#plain_text' => (int) round((float) $profile['cruise_speed_ft_s'] * (3600 / 5280)),
           ],
           'deceleration' => [
             '#plain_text' => $profile['planned_deceleration_ft_s2'] ?? '—',
@@ -260,11 +260,12 @@ class AircraftForm extends FormBase {
 
         $form['calibration_profiles']['edit_profile']['cruise_speed_ft_s'] = [
           '#type' => 'number',
-          '#title' => $this->t('Cruise Speed (ft/s)'),
+          '#title' => $this->t('Cruise Speed (MPH)'),
           '#required' => TRUE,
-          '#min' => 0.01,
-          '#step' => 0.01,
-          '#default_value' => $editing_profile['cruise_speed_ft_s'],
+          '#min' => 1,
+          '#step' => 1,
+          '#default_value' => (int) round(
+            (float) $editing_profile['cruise_speed_ft_s'] * (3600 / 5280)),
         ];
 
         $form['calibration_profiles']['edit_profile']['planned_deceleration_ft_s2'] = [
@@ -295,9 +296,9 @@ class AircraftForm extends FormBase {
 
       $form['calibration_profiles']['add_profile']['cruise_speed_ft_s'] = [
         '#type' => 'number',
-        '#title' => $this->t('Cruise Speed (ft/s)'),
-        '#min' => 0.01,
-        '#step' => 0.01,
+        '#title' => $this->t('Cruise Speed (MPH)'),
+        '#min' => 1,
+        '#step' => 1,
       ];
 
       $form['calibration_profiles']['add_profile']['planned_deceleration_ft_s2'] = [
@@ -398,7 +399,7 @@ class AircraftForm extends FormBase {
     }
 
     $data = [
-      'cruise_speed_ft_s' => (float) $speed,
+      'cruise_speed_ft_s' => (float) $speed * (5280 / 3600),
       'updated_by' => $this->currentUser()->getAccountName(),
     ];
 
@@ -483,7 +484,7 @@ class AircraftForm extends FormBase {
     }
 
     $data = [
-      'cruise_speed_ft_s' => (float) $speed,
+      'cruise_speed_ft_s' => (float) $speed * (5280 / 3600),
       'planned_deceleration_ft_s2' => (
         $deceleration === NULL || $deceleration === ''
       ) ? NULL : (float) $deceleration,
