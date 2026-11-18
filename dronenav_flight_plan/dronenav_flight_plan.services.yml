@@ -35,3 +35,9 @@ services:
       - '@dronenav_flight_plan.flight_execution'
       - '@logger.channel.dronenav_flight_plan'
 
+  dronenav_flight_plan.residential_destination:
+    class: Drupal\dronenav_flight_plan\Service\ResidentialDestinationService
+    arguments:
+      - '@http_client'
+      - '@logger.channel.dronenav_flight_plan'
+      - 'https://api.dronenav.org'

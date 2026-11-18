@@ -95,6 +95,57 @@ class FlightPlanOptionService {
     return $options;
   }
 
+  /**
+   * Returns residential destination options for a Site.
+   */
+  public function getResidentialDestinationOptions(
+    ?int $site_nid
+  ): array {
+
+    $options = [
+      '_none' => '- None -',
+    ];
+
+    if (!$site_nid) {
+      return $options;
+    }
+
+    $site = Node::load($site_nid);
+
+    if (
+      !$site ||
+      !$site->hasField('field_overlay_uuid') ||
+      $site->get('field_overlay_uuid')->isEmpty()
+    ) {
+      return $options;
+    }
+
+    $site_uuid = $site
+      ->get('field_overlay_uuid')
+      ->value;
+
+    $destinations = \Drupal::service(
+      'dronenav_flight_plan.residential_destination'
+    )->getDestinationsBySite($site_uuid);
+
+    foreach ($destinations as $destination) {
+      $destination_id = $destination['destination_id'] ?? NULL;
+      $address = $destination['street_address'] ?? NULL;
+
+      if (!$destination_id || !$address) {
+        continue;
+      }
+
+      $options[$destination_id] = $address;
+    }
+
+    asort($options);
+
+    $options['_new'] = '- New Drop Address -';
+
+    return $options;
+  }
+
   public function getRouteOptions(
     ?int $origin_site_nid,
     ?int $destination_site_nid

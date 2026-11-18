@@ -8,6 +8,7 @@ use Drupal\node\Entity\Node;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\ReplaceCommand;
 use Drupal\Core\Render\Markup;
+use Drupal\Core\Ajax\InvokeCommand;
 
 
 /**
@@ -66,6 +67,118 @@ function dronenav_flight_plan_form_node_working_flight_plan_edit_form_alter(
       '#weight' => 15,
     ];
   }
+
+  /*
+   * Show Arrival DronePort only for DronePort destinations.
+   */
+  $form['field_arrival_droneport']['#states'] = [
+    'visible' => [
+      ':input[name="field_destination_type"]' => [
+        'value' => 'droneport',
+      ],
+    ],
+  ];
+
+  $form['field_drop_address']['#access'] = FALSE;
+
+  /*
+   * Drop Address controls.
+   */
+  $form['dronenav_drop_address_container'] = [
+    '#type' => 'container',
+    '#attributes' => [
+      'id' => 'dronenav-drop-address-container',
+    ],
+    '#weight' => 11,
+    '#states' => [
+      'visible' => [
+        ':input[name="field_destination_type"][value="drop_address"]' => [
+          'checked' => TRUE,
+        ],
+      ],
+    ],
+  ];
+
+  $form['dronenav_drop_address_container']['dronenav_drop_address'] = [
+    '#type' => 'select',
+    '#title' => t('Drop Address'),
+    '#options' => [
+      '_none' => t('- None -'),
+    ],
+    '#default_value' => $form_state->getFormObject()
+      ->getEntity()
+      ->get('field_drop_address')
+      ->value ?: '_none',
+    '#weight' => 11,
+  ];
+
+  $form['dronenav_drop_address_container']['dronenav_drop_address']['#prefix'] =
+    '<div id="dronenav-drop-address-wrapper">';
+  $form['dronenav_drop_address_container']['dronenav_drop_address']['#suffix'] = '</div>';
+
+  $form['dronenav_drop_address_container']['dronenav_new_drop_address'] = [
+    '#type' => 'textfield',
+    '#title' => t('New Drop Address'),
+    '#description' => t('Enter the complete street address.'),
+    '#size' => 60,
+    '#maxlength' => 255,
+    '#default_value' => $form_state->getValue('dronenav_new_drop_address', ''),
+    '#weight' => 11.5,
+    '#states' => [
+      'visible' => [
+        ':input[name="dronenav_drop_address"]' => [
+          'value' => '_new',
+        ],
+      ],
+    ],
+  ];
+
+  $form['dronenav_drop_address_container']['dronenav_drop_latitude'] = [
+    '#type' => 'number',
+    '#title' => t('Latitude'),
+    '#step' => 'any',
+    '#default_value' => $form_state->getValue('dronenav_drop_latitude', ''),
+    '#ajax' => [
+      'callback' => 'dronenav_flight_plan_coordinate_ajax',
+      'event' => 'change',
+    ],
+    '#weight' => 11.6,
+    '#states' => [
+      'visible' => [
+        ':input[name="dronenav_drop_address"]' => [
+          'value' => '_new',
+        ],
+      ],
+    ],
+  ];
+
+  $form['dronenav_drop_address_container']['dronenav_drop_longitude'] = [
+    '#type' => 'number',
+    '#title' => t('Longitude'),
+    '#step' => 'any',
+    '#default_value' => $form_state->getValue('dronenav_drop_longitude', ''),
+    '#ajax' => [
+      'callback' => 'dronenav_flight_plan_coordinate_ajax',
+      'event' => 'change',
+    ],
+    '#weight' => 11.7,
+    '#states' => [
+      'visible' => [
+        ':input[name="dronenav_drop_address"]' => [
+          'value' => '_new',
+        ],
+      ],
+    ],
+  ];
+
+  $form['dronenav_drop_address_container']['dronenav_coordinate_error'] = [
+    '#type' => 'container',
+    '#attributes' => [
+      'id' => 'dronenav-coordinate-error',
+      'role' => 'alert',
+    ],
+    '#weight' => 20,
+  ];
 
   $form['field_origin_site']['#prefix'] =
     '<div id="dronenav-origin-site-wrapper">';
@@ -222,6 +335,14 @@ function dronenav_flight_plan_form_node_working_flight_plan_edit_form_alter(
   }
 
   /*
+   * Destination Site -> Drop Address.
+   */
+  $form['dronenav_drop_address_container']['dronenav_drop_address']['#options'] =
+    \Drupal::service(
+      'dronenav_flight_plan.option_service'
+    )->getResidentialDestinationOptions($destination_site_nid);
+
+  /*
    * Origin Site + Destination Site -> Flight Path.
    */
   $route_options = \Drupal::service(
@@ -243,7 +364,32 @@ function dronenav_flight_plan_form_node_working_flight_plan_edit_form_alter(
     $form['actions']['submit']['#submit'][] =
       'dronenav_flight_plan_round_trip_submit';
   }
+
+  $form['#entity_builders'][] =
+    'dronenav_flight_plan_drop_address_entity_builder';
 }
+
+
+/**
+ * Stores the selected Drop Address UUID in the Flight Plan.
+ */
+function dronenav_flight_plan_drop_address_entity_builder(
+  $entity_type,
+  $entity,
+  array &$form,
+  FormStateInterface $form_state
+) {
+  $destination_id = $form_state->getValue('dronenav_drop_address');
+
+  if (
+    $destination_id &&
+    $destination_id !== '_none' &&
+    $destination_id !== '_new'
+  ) {
+    $entity->set('field_drop_address', $destination_id);
+  }
+}
+
 
 /**
  * Creates a return Flight Plan draft when Round Trip is selected.
@@ -522,22 +668,185 @@ function dronenav_flight_plan_destination_site_ajax(
 
   $response = new AjaxResponse();
 
-  $response->addCommand(
-    new ReplaceCommand(
+  $response->addCommand(new ReplaceCommand(
       '#dronenav-arrival-droneport-wrapper',
       $form['field_arrival_droneport']
-    )
-  );
+  ));
 
-  $response->addCommand(
-    new ReplaceCommand(
+  $response->addCommand(new ReplaceCommand(
       '#dronenav-flight-path-wrapper',
       $form['field_flight_path']
-    )
-  );
+  ));
+
+  $response->addCommand(new ReplaceCommand(
+    '#dronenav-drop-address-container',
+    $form['dronenav_drop_address_container']
+  ));
 
   return $response;
 }
+
+
+function dronenav_flight_plan_drop_address_is_verified(
+  FormStateInterface $form_state
+): bool {
+  $latitude = $form_state->getValue('dronenav_drop_latitude');
+  $longitude = $form_state->getValue('dronenav_drop_longitude');
+
+  if (
+    $latitude === NULL ||
+    $longitude === NULL ||
+    $latitude === '' ||
+    $longitude === '' ||
+    !is_numeric($latitude) ||
+    !is_numeric($longitude)
+  ) {
+    return FALSE;
+  }
+
+  return (
+    (float) $latitude >= -90.0 &&
+    (float) $latitude <= 90.0 &&
+    (float) $longitude >= -180.0 &&
+    (float) $longitude <= 180.0
+  );
+}
+
+
+function dronenav_flight_plan_get_site_uuid(
+  ?int $site_nid
+): ?string {
+  if (!$site_nid) {
+    return NULL;
+  }
+
+  $site = \Drupal::entityTypeManager()
+    ->getStorage('node')
+    ->load($site_nid);
+
+  if (
+    !$site ||
+    !$site->hasField('field_overlay_uuid') ||
+    $site->get('field_overlay_uuid')->isEmpty()
+  ) {
+    return NULL;
+  }
+
+  return $site->get('field_overlay_uuid')->value;
+}
+
+function dronenav_flight_plan_get_destination_site_nid(
+  FormStateInterface $form_state
+): ?int {
+  $value = $form_state->getValue('field_destination_site');
+
+  if (is_array($value)) {
+    if (
+      isset($value[0]['target_id']) &&
+      is_numeric($value[0]['target_id'])
+    ) {
+      return (int) $value[0]['target_id'];
+    }
+
+    if (
+      isset($value[0]) &&
+      is_numeric($value[0])
+    ) {
+      return (int) $value[0];
+    }
+
+    if (
+      isset($value['target_id']) &&
+      is_numeric($value['target_id'])
+    ) {
+      return (int) $value['target_id'];
+    }
+  }
+
+  if (is_numeric($value)) {
+    return (int) $value;
+  }
+
+  $flight_plan = $form_state->getFormObject()->getEntity();
+
+  if (
+    $flight_plan->hasField('field_destination_site') &&
+    !$flight_plan->get('field_destination_site')->isEmpty()
+  ) {
+    return (int) $flight_plan
+      ->get('field_destination_site')
+      ->target_id;
+  }
+
+  return NULL;
+}
+
+function dronenav_flight_plan_coordinate_ajax(
+  array &$form,
+  FormStateInterface $form_state
+): AjaxResponse {
+  $response = new AjaxResponse();
+  $message = '';
+
+  $latitude = $form_state->getValue('dronenav_drop_latitude');
+  $longitude = $form_state->getValue('dronenav_drop_longitude');
+
+  if (
+    $latitude !== NULL &&
+    $longitude !== NULL &&
+    $latitude !== '' &&
+    $longitude !== ''
+  ) {
+    if (
+      !is_numeric($latitude) ||
+      !is_numeric($longitude) ||
+      (float) $latitude < -90.0 ||
+      (float) $latitude > 90.0 ||
+      (float) $longitude < -180.0 ||
+      (float) $longitude > 180.0
+    ) {
+      $message = t('Invalid latitude or longitude.');
+    }
+    else {
+      $site_nid = dronenav_flight_plan_get_destination_site_nid(
+        $form_state
+      );
+      $site_uuid = dronenav_flight_plan_get_site_uuid($site_nid);
+
+      if ($site_uuid === NULL) {
+        $message = t('Select a Destination Site.');
+      }
+      else {
+        $inside = \Drupal::service(
+          'dronenav_flight_plan.residential_destination'
+        )->isPointWithinSite(
+          $site_uuid,
+          (float) $latitude,
+          (float) $longitude
+        );
+
+        if ($inside === FALSE) {
+          $message = t('Coordinates are outside the Destination Site.');
+        }
+        elseif ($inside === NULL) {
+          $message = t('Unable to validate Site containment.');
+        }
+      }
+    }
+  }
+
+  $response->addCommand(new \Drupal\Core\Ajax\HtmlCommand(
+    '#dronenav-coordinate-error',
+    $message === ''
+      ? ''
+      : '<div class="messages messages--error" role="alert">' .
+        \Drupal\Component\Utility\Html::escape((string) $message) .
+        '</div>'
+  ));
+
+  return $response;
+}
+
 
 /**
  * Implements hook_mail().
