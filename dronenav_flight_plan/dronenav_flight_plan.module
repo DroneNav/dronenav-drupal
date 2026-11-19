@@ -357,6 +357,15 @@ function dronenav_flight_plan_form_node_working_flight_plan_edit_form_alter(
       $route_options;
   }
 
+  if (isset($form['actions']['submit']['#submit'])) {
+    array_splice(
+      $form['actions']['submit']['#submit'],
+      1,
+      0,
+      ['dronenav_flight_plan_create_drop_address_submit']
+    );
+  }
+
   if (isset($form['actions']['submit'])) {
     $form['actions']['submit']['#submit'][] =
       'dronenav_flight_plan_tfr_draft_submit';
@@ -390,6 +399,46 @@ function dronenav_flight_plan_drop_address_entity_builder(
   }
 }
 
+/**
+ * Creates a new Drop Address before the Flight Plan is saved.
+ */
+function dronenav_flight_plan_create_drop_address_submit(
+  array &$form,
+  FormStateInterface $form_state
+) {
+  if ($form_state->getValue('dronenav_drop_address') !== '_new') {
+    return;
+  }
+
+  $flight_plan = $form_state->getFormObject()->getEntity();
+
+  $site = $flight_plan->get('field_destination_site')->entity;
+
+  if (!$site || $site->get('field_overlay_uuid')->isEmpty()) {
+    \Drupal::messenger()->addError(t('Destination Site is required.'));
+    return;
+  }
+
+  $result = \Drupal::service(
+    'dronenav_flight_plan.residential_destination'
+  )->createDestination(
+    $site->get('field_overlay_uuid')->value,
+    trim($form_state->getValue('dronenav_new_drop_address')),
+    (float) $form_state->getValue('dronenav_drop_latitude'),
+    (float) $form_state->getValue('dronenav_drop_longitude')
+  );
+
+  $destination_id = $result['destination_id'] ?? NULL;
+
+  if ($destination_id) {
+    $flight_plan->set('field_drop_address', $destination_id);
+  }
+  else {
+    \Drupal::messenger()->addError(
+      t('Unable to create the Drop Address.')
+    );
+  }
+}
 
 /**
  * Creates a return Flight Plan draft when Round Trip is selected.

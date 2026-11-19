@@ -110,5 +110,51 @@ class ResidentialDestinationService {
     }
   }
 
+  /**
+   * Creates a residential destination through the DroneNav API.
+   */
+  public function createDestination(
+    string $site_uuid,
+    string $street_address,
+    float $latitude,
+    float $longitude
+  ): array {
+
+    try {
+      $response = $this->httpClient->post(
+        rtrim($this->apiBaseUrl, '/') . '/api/residential-destinations',
+        [
+          'json' => [
+            'site_id' => $site_uuid,
+            'street_address' => $street_address,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+          ],
+          'headers' => [
+            'Accept' => 'application/json',
+          ],
+          'timeout' => 15,
+        ]
+      );
+
+      $data = json_decode(
+        (string) $response->getBody(),
+        TRUE
+      );
+
+      return is_array($data) ? $data : [];
+    }
+    catch (\Throwable $e) {
+      $this->logger->error(
+        'Residential destination creation failed: @message',
+        [
+          '@message' => $e->getMessage(),
+        ]
+      );
+
+      return [];
+    }
+  }
+
 }
 
