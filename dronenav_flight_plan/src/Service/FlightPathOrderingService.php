@@ -47,6 +47,10 @@ class FlightPathOrderingService {
     $selected_routes =
       $flight_plan->get('field_flight_path')->referencedEntities();
 
+    $destination_type = $flight_plan->hasField('field_destination_type')
+      ? $flight_plan->get('field_destination_type')->value
+      : 'droneport';
+
     $departure_droneport = $this->getReferencedEntity(
       $flight_plan,
       'field_departure_droneport'
@@ -62,7 +66,10 @@ class FlightPathOrderingService {
         'A Departure DronePort is required when a Flight Path is selected.';
     }
 
-    if (!$arrival_droneport) {
+    if (
+      $destination_type === 'droneport' &&
+      !$arrival_droneport
+    ) {
       $errors[] =
         'An Arrival DronePort is required when a Flight Path is selected.';
     }
@@ -76,16 +83,20 @@ class FlightPathOrderingService {
       'Departure DronePort'
     );
 
-    $arrival_droneport_id = $this->getOverlayUuid(
-      $arrival_droneport,
-      'Arrival DronePort'
-    );
+    $arrival_droneport_id = $arrival_droneport
+      ? $this->getOverlayUuid(
+          $arrival_droneport,
+          'Arrival DronePort'
+        )
+      : NULL;
 
     if (!$departure_droneport_id) {
       $errors[] = 'The Departure DronePort does not have an API identifier.';
     }
 
-    if (!$arrival_droneport_id) {
+    if (
+      $destination_type === 'droneport' && !$arrival_droneport_id
+    ) {
       $errors[] = 'The Arrival DronePort does not have an API identifier.';
     }
 
@@ -97,8 +108,9 @@ class FlightPathOrderingService {
       $departure_droneport_details =
         $this->loadDronePortDetails($departure_droneport_id);
 
-      $arrival_droneport_details =
-        $this->loadDronePortDetails($arrival_droneport_id);
+      $arrival_droneport_details = $arrival_droneport_id
+        ? $this->loadDronePortDetails($arrival_droneport_id)
+        : [];
     }
     catch (\RuntimeException $e) {
       return $this->failure([$e->getMessage()]);
@@ -115,7 +127,10 @@ class FlightPathOrderingService {
         'The Departure DronePort does not have an associated Route Node.';
     }
 
-    if (!$arrival_route_node_id) {
+    if (
+      $destination_type === 'droneport' &&
+      !$arrival_route_node_id
+    ) {
       $errors[] =
         'The Arrival DronePort does not have an associated Route Node.';
     }
@@ -229,11 +244,16 @@ class FlightPathOrderingService {
       }
 
       if (empty($candidates)) {
-        $errors[] = sprintf(
-          'The selected Flight Path cannot be ordered from Departure DronePort "%s" to Arrival DronePort "%s".',
-          $departure_droneport->label(),
-          $arrival_droneport->label()
-        );
+        $errors[] = $destination_type === 'drop_address'
+          ? sprintf(
+              'The selected Flight Path cannot be ordered from Departure DronePort "%s".',
+              $departure_droneport->label()
+            )
+          : sprintf(
+              'The selected Flight Path cannot be ordered from Departure DronePort "%s" to Arrival DronePort "%s".',
+              $departure_droneport->label(),
+              $arrival_droneport->label()
+            );
 
         return $this->failure($errors);
       }
@@ -269,6 +289,7 @@ class FlightPathOrderingService {
        * Routes means the Aviator selected Routes outside the intended chain.
        */
       if (
+        $destination_type === 'droneport' &&
         $current_route_node_id === $arrival_route_node_id &&
         !empty($unused_routes)
       ) {
@@ -279,7 +300,10 @@ class FlightPathOrderingService {
       }
     }
 
-    if ($current_route_node_id !== $arrival_route_node_id) {
+    if (
+      $destination_type === 'droneport' &&
+      $current_route_node_id !== $arrival_route_node_id
+    ) {
       $errors[] = sprintf(
           'The selected Flight Path does not terminate at Arrival DronePort "%s".',
           $arrival_droneport->label() );

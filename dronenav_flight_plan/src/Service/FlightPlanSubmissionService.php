@@ -43,6 +43,12 @@ class FlightPlanSubmissionService {
       'field_destination_site'
     );
 
+    $destination_type = $flight_plan->get('field_destination_type')->value;
+
+    $drop_address_id = $destination_type === 'drop_address'
+        ? $flight_plan->get('field_drop_address')->value
+        : NULL;
+
     $departure_droneport = $this->getOptionalReferencedEntity(
       $flight_plan,
       'field_departure_droneport'
@@ -116,6 +122,10 @@ class FlightPlanSubmissionService {
         $destination_site,
         'field_overlay_uuid'
       ),
+
+      'destination_type' => $destination_type,
+
+      'drop_address_id' => $drop_address_id,
 
       'departure_droneport_id' => $departure_droneport
         ? $this->getRequiredFieldValue(

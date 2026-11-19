@@ -397,6 +397,12 @@ function dronenav_flight_plan_drop_address_entity_builder(
   ) {
     $entity->set('field_drop_address', $destination_id);
   }
+
+  if (
+    $entity->get('field_destination_type')->value === 'drop_address'
+  ) {
+    $entity->set('field_arrival_droneport', NULL);
+  }
 }
 
 /**
@@ -728,8 +734,8 @@ function dronenav_flight_plan_destination_site_ajax(
   ));
 
   $response->addCommand(new ReplaceCommand(
-    '#dronenav-drop-address-container',
-    $form['dronenav_drop_address_container']
+    '#dronenav-drop-address-wrapper',
+    $form['dronenav_drop_address_container']['dronenav_drop_address']
   ));
 
   return $response;

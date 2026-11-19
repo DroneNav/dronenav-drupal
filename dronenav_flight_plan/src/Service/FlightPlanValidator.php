@@ -169,6 +169,8 @@ class FlightPlanValidator {
       return;
     }
 
+    $destination_type = $flight_plan->get('field_destination_type')->value;
+
     $departure_droneport = NULL;
     $arrival_droneport = NULL;
 
@@ -226,7 +228,7 @@ class FlightPlanValidator {
             'A Flight Plan with a Departure Date and Time requires a Departure DronePort.';
         }
 
-        if (!$arrival_droneport) {
+        if ($destination_type === 'droneport' && !$arrival_droneport) {
           $errors[] =
             'A Flight Plan with a Departure Date and Time requires an Arrival DronePort.';
         }
