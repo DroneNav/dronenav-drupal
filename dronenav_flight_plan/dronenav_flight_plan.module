@@ -92,8 +92,8 @@ function dronenav_flight_plan_form_node_working_flight_plan_edit_form_alter(
     '#weight' => 11,
     '#states' => [
       'visible' => [
-        ':input[name="field_destination_type"][value="drop_address"]' => [
-          'checked' => TRUE,
+        ':input[name="field_destination_type"]' => [
+          'value' => 'drop_address',
         ],
       ],
     ],
@@ -280,6 +280,18 @@ function dronenav_flight_plan_form_node_working_flight_plan_edit_form_alter(
    */
   $triggering_element = $form_state->getTriggeringElement();
   $triggering_field = $triggering_element['#parents'][0] ?? NULL;
+
+  if ($triggering_field === 'field_destination_site') {
+    $form_state->setValue('dronenav_drop_address', '_none');
+    $form_state->setValue('dronenav_new_drop_address', '');
+    $form_state->setValue('dronenav_drop_latitude', '');
+    $form_state->setValue('dronenav_drop_longitude', '');
+
+    $form['dronenav_drop_address_container']['dronenav_drop_address']['#value'] = '_none';
+    $form['dronenav_drop_address_container']['dronenav_new_drop_address']['#value'] = '';
+    $form['dronenav_drop_address_container']['dronenav_drop_latitude']['#value'] = '';
+    $form['dronenav_drop_address_container']['dronenav_drop_longitude']['#value'] = '';
+  }
 
   if ($triggering_field === 'field_authority') {
     $origin_site_nid = NULL;
@@ -734,8 +746,8 @@ function dronenav_flight_plan_destination_site_ajax(
   ));
 
   $response->addCommand(new ReplaceCommand(
-    '#dronenav-drop-address-wrapper',
-    $form['dronenav_drop_address_container']['dronenav_drop_address']
+    '#dronenav-drop-address-container',
+    $form['dronenav_drop_address_container']
   ));
 
   return $response;
