@@ -461,10 +461,9 @@ dronenav_api.gateway.deactivate_route_overlay:
   methods: [POST]
 
 dronenav_api.gateway.residential_destinations:
-  path: '/api-gateway/sites/{site_id}/residential-destinations'
+  path: '/api-gateway/residential-destinations'
   defaults:
     _controller: '\Drupal\dronenav_api\Controller\SiteGatewayController::getResidentialDestinations'
   requirements:
     _permission: 'access dronenav api gateway'
-    site_id: '[0-9a-fA-F-]+'
   methods: [GET]
