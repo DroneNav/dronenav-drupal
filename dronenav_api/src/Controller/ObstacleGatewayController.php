@@ -176,6 +176,84 @@ final class ObstacleGatewayController extends ControllerBase {
     );
   }
 
+  /**
+   * Verifies an FAA Obstacle with its spatial counterpart.
+   */
+  public function verifyObstacleSpatial(string $obstacle_id, Request $request): JsonResponse {
+
+    $payload = json_decode(
+      $request->getContent(),
+      TRUE
+    );
+
+    if (!is_array($payload)) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => 'Invalid JSON request.',
+      ], 400);
+    }
+
+    $diameter_ft = $payload['diameter_ft'] ?? NULL;
+
+    if (!is_int($diameter_ft) || $diameter_ft <= 0) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => 'Diameter must be a positive integer.',
+      ], 400);
+    }
+
+    $result = $this->gateway->verifyObstacleSpatial(
+      $obstacle_id,
+      $diameter_ft
+    );
+
+    if (!$result['success']) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => $result['message'],
+        'data' => $result['data'],
+      ], $result['status']);
+    }
+
+    return new JsonResponse(
+      $result['data'],
+      $result['status']
+    );
+  }
+
+  /**
+   * Gets FAA Obstacle candidates.
+   */
+  public function getFAAObstacleCandidates(Request $request): JsonResponse {
+
+    $payload = json_decode(
+      $request->getContent(),
+      TRUE
+    );
+
+    if (!is_array($payload)) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => 'Invalid JSON request.',
+      ], 400);
+    }
+
+    $result = $this->gateway->getFAAObstacleCandidates($payload);
+
+    if (!$result['success']) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => $result['message'],
+        'data' => $result['data'],
+      ], $result['status']);
+    }
+
+    return new JsonResponse(
+      $result['data'],
+      $result['status']
+    );
+  }
+
 
 }
 
