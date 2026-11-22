@@ -91,6 +91,25 @@ final class SiteGatewayController extends ControllerBase {
   }
 
   /**
+   * Returns residential destinations for a Site from the DroneNav API.
+   */
+  public function getResidentialDestinations(string $site_id): JsonResponse {
+    $result = $this->gateway->getResidentialDestinations($site_id);
+
+    if (!$result['success']) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => $result['message'],
+      ], $result['status']);
+    }
+
+    return new JsonResponse(
+      $result['data'],
+      $result['status']
+    );
+  }
+
+  /**
    * Creates a Site.
    */
   public function createSite(Request $request): JsonResponse {
