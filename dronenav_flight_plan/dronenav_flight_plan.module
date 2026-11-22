@@ -53,6 +53,16 @@ function dronenav_flight_plan_form_node_working_flight_plan_edit_form_alter(
     $form['field_flight_calibration']['#access'] = FALSE;
   }
 
+  if (isset($form['field_flight_calibration'])) {
+    $form['field_flight_calibration']['#states'] = [
+      'visible' => [
+        ':input[name="field_destination_type"]' => [
+          'value' => 'droneport',
+        ],
+      ],
+    ];
+  }
+
   $is_return_trip =
     $flight_plan->hasField('field_round_trip_parent') &&
     !$flight_plan->get('field_round_trip_parent')->isEmpty();
@@ -65,6 +75,13 @@ function dronenav_flight_plan_form_node_working_flight_plan_edit_form_alter(
         'Create a separate draft Flight Plan for the return trip.'
       ),
       '#weight' => 15,
+      '#states' => [
+        'visible' => [
+          ':input[name="field_destination_type"]' => [
+            'value' => 'droneport',
+          ],
+        ],
+      ],
     ];
   }
 
@@ -287,7 +304,6 @@ function dronenav_flight_plan_form_node_working_flight_plan_edit_form_alter(
     $form_state->setValue('dronenav_drop_latitude', '');
     $form_state->setValue('dronenav_drop_longitude', '');
 
-    $form['dronenav_drop_address_container']['dronenav_drop_address']['#value'] = '_none';
     $form['dronenav_drop_address_container']['dronenav_new_drop_address']['#value'] = '';
     $form['dronenav_drop_address_container']['dronenav_drop_latitude']['#value'] = '';
     $form['dronenav_drop_address_container']['dronenav_drop_longitude']['#value'] = '';
@@ -400,6 +416,7 @@ function dronenav_flight_plan_drop_address_entity_builder(
   array &$form,
   FormStateInterface $form_state
 ) {
+
   $destination_id = $form_state->getValue('dronenav_drop_address');
 
   if (
@@ -467,6 +484,16 @@ function dronenav_flight_plan_round_trip_submit(
 ) {
 
   if (!$form_state->getValue('dronenav_round_trip')) {
+    return;
+  }
+
+  $destination_type = $form_state->getValue('field_destination_type');
+
+  if (is_array($destination_type)) {
+    $destination_type = $destination_type[0]['value'] ?? NULL;
+  }
+
+  if ($destination_type === 'drop_address') {
     return;
   }
 
@@ -736,14 +763,25 @@ function dronenav_flight_plan_destination_site_ajax(
   $response = new AjaxResponse();
 
   $response->addCommand(new ReplaceCommand(
-      '#dronenav-arrival-droneport-wrapper',
-      $form['field_arrival_droneport']
+    '#dronenav-arrival-droneport-wrapper',
+    $form['field_arrival_droneport']
   ));
 
   $response->addCommand(new ReplaceCommand(
-      '#dronenav-flight-path-wrapper',
-      $form['field_flight_path']
+    '#dronenav-flight-path-wrapper',
+    $form['field_flight_path']
   ));
+
+  $destination_type = $form_state->getValue('field_destination_type');
+
+  if (is_array($destination_type)) {
+    $destination_type = $destination_type[0]['value'] ?? NULL;
+  }
+
+  $form['dronenav_drop_address_container']['#attributes']['style'] =
+    $destination_type === 'drop_address'
+      ? 'display: block;'
+      : 'display: none;';
 
   $response->addCommand(new ReplaceCommand(
     '#dronenav-drop-address-container',
