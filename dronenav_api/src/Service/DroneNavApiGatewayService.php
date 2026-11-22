@@ -245,6 +245,27 @@ final class DroneNavApiGatewayService {
   }
 
   /**
+   * Retrieve residential destinations associated with a Site.
+   */
+  public function getResidentialDestinations(string $site_id): array {
+    $site_id = trim($site_id);
+
+    if ($site_id === '') {
+      return [
+        'success' => FALSE,
+        'status' => 400,
+        'data' => NULL,
+        'message' => 'The Site ID is required.',
+      ];
+    }
+
+    return $this->request(
+      'GET',
+      '/api/residential-destinations?site_id=' . rawurlencode($site_id)
+    );
+  }
+
+  /**
    * Creates a new DroneNav Site.
    */
   public function createSite(array $site): array {
@@ -909,26 +930,65 @@ final class DroneNavApiGatewayService {
     );
   }
 
-    /**
-     * Associates an Obstacle with its intersecting Site.
-     */
-    public function associateObstacleSite(string $obstacle_id): array {
-      $obstacle_id = trim($obstacle_id);
+  /**
+   * Associates an Obstacle with its intersecting Site.
+   */
+  public function associateObstacleSite(string $obstacle_id): array {
+    $obstacle_id = trim($obstacle_id);
 
-      if ($obstacle_id === '') {
-        return [
-          'success' => FALSE,
-          'status' => 400,
-          'data' => NULL,
-          'message' => 'The Obstacle ID is required.',
-        ];
-      }
-
-      return $this->request(
-        'PATCH',
-        '/api/obstacles/' . $obstacle_id . '/site-association'
-      );
+    if ($obstacle_id === '') {
+      return [
+        'success' => FALSE,
+        'status' => 400,
+        'data' => NULL,
+        'message' => 'The Obstacle ID is required.',
+      ];
     }
+
+    return $this->request(
+      'PATCH',
+      '/api/obstacles/' . $obstacle_id . '/site-association'
+    );
+  }
+
+  /**
+   * Verifies an FAA Obstacle with an existing spatial obstacle
+   */
+  public function verifyObstacleSpatial(string $obstacle_id, int $diameter_ft): array {
+    $obstacle_id = trim($obstacle_id);
+
+    if ($obstacle_id === '') {
+      return [
+        'success' => FALSE,
+        'status' => 400,
+        'data' => NULL,
+        'message' => 'The Obstacle ID is required.',
+      ];
+    }
+
+    return $this->request(
+      'PATCH',
+      '/api/obstacles/faa/' . $obstacle_id . '/verify',
+      [
+        'json' => [
+          'diameter_ft' => $diameter_ft,
+        ],
+      ]
+    );
+  }
+
+  /**
+   * Gets FAA Obstacle candidates.
+   */
+  public function getFAAObstacleCandidates(array $data): array {
+    return $this->request(
+      'POST',
+      '/api/obstacles/faa-candidates',
+      [
+        'json' => $data,
+      ]
+    );
+  }
 
 
 
